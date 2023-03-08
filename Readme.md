@@ -10,7 +10,7 @@ AWS CLI (>= v2.1.6)
 ## Usage
 To use the Terraform code in this repository, follow these steps:
 
-##Clone the repository using the following command:
+## Clone the repository using the following command:
 
 git clone https://github.com/bhowmickkrishnendu/AWS-With-Terraform.git
 
