@@ -1,7 +1,7 @@
 ## AWS with Terraform
 This repository contains Terraform code to deploy various resources on Amazon Web Services (AWS) platform. The purpose of this repository is to demonstrate the usage of Terraform to deploy and manage infrastructure on AWS.
 
-##Prerequisites
+## Prerequisites
 Before you can use the Terraform code in this repository, you must have the following prerequisites installed:
 
 Terraform (>= v0.14.9)
