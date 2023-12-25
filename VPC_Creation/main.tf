@@ -69,3 +69,18 @@ resource "aws_route_table_association" "Mumbai_First_VPC_Public_RT_Association" 
   
 }
 
+# Create a private route table for the Mumbai VPC
+resource "aws_route_table" "Mumbai_First_VPC_Private_RT" {
+    vpc_id = aws_vpc.Mumbai_First_VPC.id
+
+    # Set tags for the private route table
+    tags = {
+      Name = "Mumbai_First_VPC_Private_RT"
+    }
+}
+
+# Associate the private route table with the private subnet in the Mumbai VPC
+resource "aws_route_table_association" "Mumbai_First_VPC_Private_RT_Association" {
+    subnet_id = aws_subnet.Mumbai_First_VPC_Private_Subnet.id
+    route_table_id = aws_route_table.Mumbai_First_VPC_Private_RT.id
+}
