@@ -35,3 +35,12 @@ resource "aws_subnet" "Mumbai_First_VPC_Private_Subnet" {
         Name = "Mumbai_First_VPC_Private_Subnet"
     } 
 }
+
+# Create an Internet Gateway for the Mumbai VPC
+resource "aws_internet_gateway" "Mumbai_First_VPC_IGW" {
+    vpc_id = aws_vpc.Mumbai_First_VPC.id
+    tags = {
+      Name = "Mumbai_First_VPC_IGW"
+    }
+  
+}
