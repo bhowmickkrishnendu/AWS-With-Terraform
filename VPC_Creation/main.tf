@@ -44,3 +44,20 @@ resource "aws_internet_gateway" "Mumbai_First_VPC_IGW" {
     }
   
 }
+
+# Create a public route table for the Mumbai VPC
+resource "aws_route_table" "Mumbai_First_VPC_Public_RT" {
+    vpc_id = aws_vpc.Mumbai_First_VPC.id
+
+    # Set tags for the public route table
+    tags = {
+      Name = "Mumbai_First_VPC_Public_RT"
+    }
+}
+
+# Create a default route in the public route table to the Internet Gateway
+resource "aws_route" "Mumbai_First_VPC_Route" {
+  route_table_id = aws_route_table.Mumbai_First_VPC_Public_RT.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id = aws_internet_gateway.Mumbai_First_VPC_IGW.id
+}
