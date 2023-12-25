@@ -13,3 +13,25 @@ resource "aws_vpc" "Mumbai_First_VPC" {
         Name = "Mumbai_First_VPC"
     }
 }
+
+# Create a public subnet in the Mumbai VPC
+resource "aws_subnet" "Mumbai_First_VPC_Public_Subnet" {
+    vpc_id = aws_vpc.Mumbai_First_VPC.id
+    cidr_block = "10.0.1.0/24"
+    availability_zone = var.availability_zone
+    map_public_ip_on_launch = true
+    tags = {
+      Name = "Mumbai_First_VPC_Public_Subnet"
+    }
+  
+}
+
+# Create a private subnet in the Mumbai VPC
+resource "aws_subnet" "Mumbai_First_VPC_Private_Subnet" {
+    vpc_id = aws_vpc.Mumbai_First_VPC.id
+    cidr_block = "10.0.2.0/24"
+    availability_zone = var.availability_zone1
+    tags = {
+        Name = "Mumbai_First_VPC_Private_Subnet"
+    } 
+}
