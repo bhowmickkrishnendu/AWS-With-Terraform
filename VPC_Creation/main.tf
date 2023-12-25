@@ -84,3 +84,18 @@ resource "aws_route_table_association" "Mumbai_First_VPC_Private_RT_Association"
     subnet_id = aws_subnet.Mumbai_First_VPC_Private_Subnet.id
     route_table_id = aws_route_table.Mumbai_First_VPC_Private_RT.id
 }
+
+# Output the ID of the Mumbai VPC
+output "vpc_id" {
+  value = aws_vpc.Mumbai_First_VPC.id
+}
+
+# Output the ID of the public subnet in the Mumbai VPC
+output "public_subnet" {
+    value = aws_subnet.Mumbai_First_VPC_Public_Subnet.id
+}
+
+# Output the ID of the private subnet in the Mumbai VPC
+output "private_subnet" {
+    value = aws_subnet.Mumbai_First_VPC_Private_Subnet.id  
+}
