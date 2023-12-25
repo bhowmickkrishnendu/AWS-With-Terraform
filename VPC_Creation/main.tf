@@ -61,3 +61,11 @@ resource "aws_route" "Mumbai_First_VPC_Route" {
   destination_cidr_block = "0.0.0.0/0"
   gateway_id = aws_internet_gateway.Mumbai_First_VPC_IGW.id
 }
+
+# Associate the public route table with the public subnet in the Mumbai VPC
+resource "aws_route_table_association" "Mumbai_First_VPC_Public_RT_Association" {
+    subnet_id = aws_subnet.Mumbai_First_VPC_Public_Subnet.id
+    route_table_id = aws_route_table.Mumbai_First_VPC_Public_RT.id
+  
+}
+
