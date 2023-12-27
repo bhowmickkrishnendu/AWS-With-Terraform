@@ -56,7 +56,7 @@ resource "aws_instance" "Mumbai_First_Server" {
 resource "aws_security_group" "allow_ssh" {
     name = "Mumbai_First_Server-SG"
     description = "Control Traffic"
-    vpc_id = "vpc-0e5c7dd3912759f92"
+    vpc_id = "vpc-0e5c7dd3912759f92"                                # Specify the VPC ID
 
     # Ingress rule to allow SSH traffic
     ingress {
