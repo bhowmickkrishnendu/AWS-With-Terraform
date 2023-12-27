@@ -19,7 +19,7 @@ resource "tls_private_key" "rsa" {
 # Local file resource to save the private key locally
 resource "local_file" "Mumbai_Key" {
     content = tls_private_key.rsa.private_key_pem
-    filename = "Mumbai_First_Server"
+    filename = "Mumbai_First_Server.pem"
 }
 
 
