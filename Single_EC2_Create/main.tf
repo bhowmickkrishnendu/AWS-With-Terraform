@@ -72,3 +72,16 @@ resource "aws_security_group" "allow_ssh" {
         Name = "Mumbai_First_Server-SG"
     }
 }
+
+# Output block to expose relevant information
+output "public_key" {
+    value = aws_instance.Mumbai_First_Server.public_ip
+}
+
+output "private_key" {
+    value = aws_instance.Mumbai_First_Server.private_ip
+}
+
+output "ec2_id" {
+    value = aws_instance.Mumbai_First_Server.id
+}
