@@ -1,0 +1,46 @@
+# Define AWS Region Provider
+provider "aws" {
+  alias  = "main"
+  region = var.region  # Set the AWS region based on the 'region' variable
+}
+
+# Define AWS S3 Bucket
+resource "aws_s3_bucket" "bucket_name" {
+    bucket = "krish-monitoring-log"  # Specify the desired S3 bucket name
+    tags = {
+      Name      = "Monitoring Application Logs"  # Add a tag for better identification
+    }
+}
+
+# Define S3 Bucket Ownership Controls
+resource "aws_s3_bucket_ownership_controls" "ownership_access" {
+    bucket  =   aws_s3_bucket.bucket_name.id  # Reference the created S3 bucket
+
+    rule {
+      object_ownership = "BucketOwnerPreferred"  # Set object ownership to BucketOwnerPreferred
+    }
+}
+
+# Define S3 Bucket Public Access Block
+resource "aws_s3_bucket_public_access_block" "public_access" {
+    bucket = aws_s3_bucket.bucket_name.id  # Reference the created S3 bucket
+    block_public_acls        = false  # Allow public ACLs
+    block_public_policy      = false  # Allow public policies
+    ignore_public_acls       = false  # Do not ignore public ACLs
+    restrict_public_buckets  = false  # Do not restrict public buckets
+}
+
+# Define S3 Bucket ACL with Public Read Access
+resource "aws_s3_bucket_acl" "bucket_acl" {
+    depends_on = [ 
+        aws_s3_bucket_ownership_controls.ownership_access,
+        aws_s3_bucket_public_access_block.public_access,
+    ]
+    bucket = aws_s3_bucket.bucket_name.id  # Reference the created S3 bucket
+    acl = "public-read"  # Set ACL to public-read for public access
+}
+
+# Define Terraform Output to expose S3 Bucket ARN
+output "bucket_arn" {
+    value = aws_s3_bucket.bucket_name.arn  # Expose the ARN of the created S3 bucket
+}
