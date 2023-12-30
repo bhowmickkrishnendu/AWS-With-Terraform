@@ -2,7 +2,9 @@
 
 ## Overview
 
-This Terraform configuration automates the creation of an AWS S3 bucket named "krish-monitoring-log." The S3 bucket is configured with ownership controls, public access block settings, and a public-read ACL for broad access. Additionally, an output is provided to expose the ARN of the created S3 bucket.
+This Terraform configuration automates the creation of an AWS S3 bucket named "krish-monitoring-log." The updated configuration now includes the concept of folders within the S3 bucket structure. Each folder, such as "folder_smith/" and "folder_jhon," is represented by corresponding S3 objects.
+
+The S3 bucket is configured with ownership controls, public access block settings, and a public-read ACL for broad access. Additionally, an output is provided to expose the ARN of the created S3 bucket.
 
 ## Prerequisites
 
