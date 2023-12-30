@@ -40,6 +40,29 @@ resource "aws_s3_bucket_acl" "bucket_acl" {
     acl = "public-read"  # Set ACL to public-read for public access
 }
 
+# Define S3 Objects
+
+# Object representing the first folder "folder_smith/"
+resource "aws_s3_object" "first_folder" {
+  bucket  = aws_s3_bucket.bucket_name.id
+  content = "folder_smith/"
+  key     = ""  # Set the key as an empty string for a folder-like structure
+}
+
+# Object representing the second folder "folder_jhon"
+resource "aws_s3_object" "second_folder" {
+  bucket  = aws_s3_bucket.bucket_name.id
+  content = "folder_jhon"
+  key     = ""  # Set the key as an empty string for a folder-like structure
+}
+
+# Object representing the sub-folder "folder_smith/folder_peter/"
+resource "aws_s3_object" "sub_folder" {
+  bucket  = aws_s3_bucket.bucket_name.id
+  content = "folder_smith/folder_peter/"
+  key     = ""  # Set the key as an empty string for a folder-like structure
+}
+
 # Define Terraform Output to expose S3 Bucket ARN
 output "bucket_arn" {
     value = aws_s3_bucket.bucket_name.arn  # Expose the ARN of the created S3 bucket
