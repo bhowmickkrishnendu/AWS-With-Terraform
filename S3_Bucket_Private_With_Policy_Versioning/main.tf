@@ -61,3 +61,9 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
     bucket = aws_s3_bucket.bucket_name.id
     policy = data.aws_iam_policy_document.policy_details.json
 }
+
+# Define Terraform Output to expose S3 Bucket ARN
+output "bucket_arn" {
+    value = aws_s3_bucket.bucket_name.arn               # Expose the ARN of the created S3 bucket
+  
+}
