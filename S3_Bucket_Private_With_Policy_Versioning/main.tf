@@ -28,3 +28,36 @@ resource "aws_s3_bucket_acl" "bucket_acl" {
     bucket = aws_s3_bucket.bucket_name.id  # Reference the created S3 bucket
     acl    = "private"  # Set ACL to private for restricted access
 }
+
+# IAM policy document for allowing public read access with IP condition
+data "aws_iam_policy_document" "policy_details" {
+    statement {
+      sid = "AllowPublicRead"
+      principals {
+        type        = "AWS"
+        identifiers = ["*"]
+      }
+      actions = [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket",
+        "s3:DeleteObject",
+        "s3:GetBucketLocation",
+      ]
+      resources = [
+        aws_s3_bucket.bucket_name.arn,
+        "${aws_s3_bucket.bucket_name.arn}/*",
+      ]
+      condition {
+        test     = "IpAddress"
+        variable = "aws:SourceIp"
+        values   = ["10.0.0.0/16", "0.0.0.0/0"]
+      }
+    } 
+}
+
+# Apply IAM policy to the S3 bucket for public read access with IP condition
+resource "aws_s3_bucket_policy" "bucket_policy" {
+    bucket = aws_s3_bucket.bucket_name.id
+    policy = data.aws_iam_policy_document.policy_details.json
+}
