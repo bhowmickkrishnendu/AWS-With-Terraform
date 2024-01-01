@@ -66,6 +66,14 @@ resource "aws_security_group" "allow_ssh" {
         protocol = "tcp"
         cidr_blocks = ["0.0.0.0/0"]
     }
+
+    # Egress rule to allow trafic outside
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        cidr_blocks = [ "0.0.0.0/0" ]
+    }
     
     # Tags for the security group
     tags = {
