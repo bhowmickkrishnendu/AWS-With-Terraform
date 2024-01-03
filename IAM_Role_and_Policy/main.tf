@@ -5,8 +5,8 @@ provider "aws" {
 }
 
 # AWS IAM role resource creation
-resource "aws_iam_role" "role_name" {
-    name = "Bucket Control"  # Specify the name of the IAM role
+resource "aws_iam_role" "role_details" {
+    name = var.role_name              # Specify the name of the IAM role
 
     assume_role_policy = jsonencode({
         Version = "2012-10-17"
@@ -23,6 +23,30 @@ resource "aws_iam_role" "role_name" {
     })
 
     tags = {
-        name    =  "Bucket Control"  # Add a tag for better identification
+        name    =  var.role_name              # Add a tag for better identification
     }
+}
+
+# AWS IAM policy resource creation
+resource "aws_iam_policy" "policy_details" {
+  name        = var.user_policy_name  # Specify the name of the IAM policy
+  path        = "/"                   # Set the path for the IAM policy
+  description = "This is the user policy"  # Add a description for the IAM policy
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+        {
+            Action = [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:ListBucket",
+                "s3:DeleteObject",
+                "s3:GetBucketLocation",
+            ]
+            Effect   = "Allow"
+            Resource = "*"
+        },
+    ]
+  })
 }
