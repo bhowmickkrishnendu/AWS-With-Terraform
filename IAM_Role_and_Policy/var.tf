@@ -6,7 +6,7 @@ variable "region" {
 
 # Define the variable for the IAM role name
 variable "role_name" {
-    default = "Bucket Control"  # Set the default IAM role name to 'Bucket Control'
+    default = "Bucket-Control"  # Set the default IAM role name to 'Bucket Control'
 }
 
 # Define the default policy name for IAM user
