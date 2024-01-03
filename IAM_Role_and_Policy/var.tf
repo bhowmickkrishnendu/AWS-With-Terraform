@@ -3,3 +3,7 @@ variable "region" {
     description = "This variable specifies the AWS Mumbai region"
     default     = "ap-south-1"  # Set the default AWS region to Mumbai (ap-south-1)
 }
+
+variable "role_name" {
+  default = "Bucket Control"
+}
