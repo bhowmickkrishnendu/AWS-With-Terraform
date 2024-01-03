@@ -50,3 +50,9 @@ resource "aws_iam_policy" "policy_details" {
     ]
   })
 }
+
+# Attach IAM policy to IAM role
+resource "aws_iam_role_policy_attachment" "attaching_policy" {
+  policy_arn = aws_iam_policy.policy_details.arn
+  role = aws_iam_role.role_details.name
+}
