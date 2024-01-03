@@ -8,3 +8,8 @@ variable "region" {
 variable "role_name" {
     default = "Bucket Control"  # Set the default IAM role name to 'Bucket Control'
 }
+
+# Define the default policy name for IAM user
+variable "user_policy_name" {
+    default = "s3_Policy"
+}
