@@ -1,38 +1,33 @@
-# Define the AWS provider
+# AWS Provider Configuration
 provider "aws" {
   region = var.region
 }
 
-# Create the IAM policy
+# IAM Policy Creation for Auto Scaling
 resource "aws_iam_policy" "autoscaling_policy" {
-  name        = "autoscaling_policy"
-  policy      = jsonencode({
-    Version = "2012-10-17"
+  name   = "autoscaling_policy"
+  policy = jsonencode({
+    Version = "2012-10-17",
     Statement = [
       {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "autoscaling:DescribeAutoScalingGroups",
-                "autoscaling:DescribeAutoScalingInstances",
-                "autoscaling:DescribeLaunchConfigurations",
-                "autoscaling:DescribeTags",
-                "autoscaling:SetDesiredCapacity",
-                "autoscaling:TerminateInstanceInAutoScalingGroup",
-                "ec2:DescribeLaunchTemplateVersions"
-            ],
-            "Resource": "*",
-            "Effect": "Allow"
-        }
-    ]
-    }
-    ]
+        Action   = [
+          "autoscaling:DescribeAutoScalingGroups",
+          "autoscaling:DescribeAutoScalingInstances",
+          "autoscaling:DescribeLaunchConfigurations",
+          "autoscaling:DescribeTags",
+          "autoscaling:SetDesiredCapacity",
+          "autoscaling:TerminateInstanceInAutoScalingGroup",
+          "ec2:DescribeLaunchTemplateVersions",
+        ],
+        Resource = "*",
+        Effect   = "Allow",
+      },
+    ],
   })
 }
 
-# Attach the policy to the role
+# IAM Policy Attachment to Role
 resource "aws_iam_role_policy_attachment" "autoscaling_policy_attachment" {
   policy_arn = aws_iam_policy.autoscaling_policy.arn
-  role       = "EKS_WorkerNodeRole" 
+  role       = "EKS_WorkerNodeRole"
 }
