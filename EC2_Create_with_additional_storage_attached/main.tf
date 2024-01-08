@@ -60,3 +60,32 @@ resource "aws_instance" "Mumbai_First_Server" {
         Name = "Mumbai_First_Server"
     }
 }
+
+# AWS security group resource to allow SSH traffic
+resource "aws_security_group" "allow_ssh" {
+    name        = "Mumbai_First_Server-SG"
+    description = "Control Traffic"
+    vpc_id      = "vpc-0e5c7dd3912759f92"
+
+    # Ingress rule to allow SSH traffic
+    ingress {
+        description = "Allow SSH traffic"
+        from_port   = 22
+        to_port     = 22
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    # Egress rule to allow traffic outside
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    # Tags for the security group
+    tags = {
+        Name = "Mumbai_First_Server-SG"
+    }
+}
