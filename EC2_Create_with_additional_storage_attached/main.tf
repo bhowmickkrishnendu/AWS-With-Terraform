@@ -39,11 +39,6 @@ resource "aws_instance" "Mumbai_First_Server" {
         delete_on_termination = false
     }
 
-    # Volume tag for Root 
-    volume_tags = {
-    Name = "Mumbai_First_Server_Root" 
-  }
-
     # Additional EBS volume configuration
     ebs_block_device {
         device_name           = "/dev/sdf"  # Specify the device name
