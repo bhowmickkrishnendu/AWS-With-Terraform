@@ -37,6 +37,11 @@ resource "aws_instance" "Mumbai_First_Server" {
         volume_size           = 10
         volume_type           = "gp2"
         delete_on_termination = false
+
+        # Tag for the root volume
+        tags = {
+            Name = "Mumbai_First_Server_Root"
+        }
     }
 
     # Additional EBS volume configuration
