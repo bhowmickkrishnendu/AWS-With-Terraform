@@ -91,13 +91,14 @@ output "ec2_id" {
 ***4. Access EC2 Instance:*** Use the generated private key (Mumbai_First_Server.pem) to SSH into the deployed EC2 instance.
 
 
-> [!Cleanup]
-> To remove the created resources, run terraform destroy after usage.
+## Cleanup
+To remove the created resources, run terraform destroy after usage.
+
 
 > [!IMPORTANT]
-> Ensure that you have the necessary AWS credentials configured on your machine.
-> Review and customize the configuration based on your specific requirements before applying changes.
-> Always follow best practices for securing your resources, including key pairs and security group configurations.
+> 1. Ensure that you have the necessary AWS credentials configured on your machine.
+> 2. Review and customize the configuration based on your specific requirements before applying changes.
+> 3. Always follow best practices for securing your resources, including key pairs and security group configurations.
 ## License
 This Terraform configuration is licensed under the MIT License.
 [MIT](https://choosealicense.com/licenses/mit/)
