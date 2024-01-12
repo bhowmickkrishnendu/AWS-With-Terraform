@@ -1,5 +1,3 @@
-# README.md
-
 ## Terraform code for creating an IAM role with S3 permissions and associating it with an instance profile
 
 This Terraform code provisions the following AWS resources:
