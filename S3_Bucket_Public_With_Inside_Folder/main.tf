@@ -40,6 +40,36 @@ resource "aws_s3_bucket_acl" "bucket_acl" {
     acl = "public-read"  # Set ACL to public-read for public access
 }
 
+# Define S3 Bucket Policy
+data "aws_iam_policy_document" "s3_bucket_policy" {
+  statement {
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]  # You can replace "*" with specific AWS account IDs if needed
+    }
+
+    # Define allowed actions on the S3 bucket
+    actions = [
+      "s3:GetObject",
+      "s3:ListBucket",
+    ]
+
+    # Specify the resources (S3 bucket and its objects) the policy applies to
+    resources = [
+      aws_s3_bucket.bucket_name.arn,
+      "${aws_s3_bucket.bucket_name.arn}/*",
+    ]
+  }
+}
+
+# Associate IAM Policy Document with S3 Bucket
+resource "aws_s3_bucket_policy" "bucket_policy" {
+  bucket = aws_s3_bucket.bucket_name.id  # Reference the created S3 bucket
+
+  # Specify the IAM policy document by referencing the data block
+  policy = data.aws_iam_policy_document.s3_bucket_policy.json
+}
+
 # Define S3 Objects
 
 # Object representing the first folder "folder_smith/"
