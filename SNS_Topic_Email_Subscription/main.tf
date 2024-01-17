@@ -11,3 +11,9 @@ resource "aws_sns_topic" "topicname" {
     Name = var.topicname
   }
 }
+
+resource "aws_sns_topic_subscription" "sns_subscription_1" {
+  topic_arn = aws_sns_topic.topicname.arn
+  protocol = email
+  endpoint = "9635.krishnendu@gmail.com"
+}
