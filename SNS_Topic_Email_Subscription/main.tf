@@ -5,5 +5,9 @@ provider "AWS" {
 }
 
 resource "aws_sns_topic" "topicname" {
-  name = "user-exception"
+  name = var.topicname
+  display_name = var.topicname
+  tags = {
+    Name = var.topicname
+  }
 }
