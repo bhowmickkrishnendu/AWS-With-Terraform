@@ -4,6 +4,7 @@ variable "region" {
   default     = "ap-south-1"
 }
 
+# Define the variable for the SNS Topic name
 variable "topicname" {
   default = "Demo-Topic_Name"
 }
