@@ -10,3 +10,11 @@ resource "aws_s3_bucket" "name" {
   }
 }
 
+resource "aws_s3_bucket_ownership_controls" "bucketcontrol" {
+  bucket = aws_s3_bucket.name.id
+
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
