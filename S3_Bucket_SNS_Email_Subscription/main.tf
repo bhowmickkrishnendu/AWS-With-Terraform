@@ -18,3 +18,9 @@ resource "aws_s3_bucket_ownership_controls" "bucketcontrol" {
   }
 }
 
+resource "aws_s3_bucket_acl" "bucketacl" {
+  depends_on = [ aws_s3_bucket_ownership_controls.bucketcontrol ]
+
+  bucket = aws_s3_bucket.name.id
+  acl = "private"
+}
