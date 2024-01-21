@@ -98,3 +98,9 @@ resource "aws_sns_topic_policy" "snspolicyname" {
   arn = aws_sns_topic.topicname.arn
   policy = data.aws_iam_policy_document.snspolicydocs.json
 }
+
+resource "aws_sns_topic_subscription" "sns_subscription_1" {
+  topic_arn = aws_sns_topic.topicname.arn
+  protocol = email
+  endpoint = "9635.krishnendu@gmail.com"
+}
