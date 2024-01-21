@@ -50,3 +50,8 @@ data "aws_iam_policy_document" "bucketdata" {
     }
   }
 }
+
+resource "aws_s3_bucket_policy" "bucketpolicy" {
+  bucket = aws_s3_bucket.name.id
+  policy = data.aws_iam_policy_document.bucketdata.json
+}
