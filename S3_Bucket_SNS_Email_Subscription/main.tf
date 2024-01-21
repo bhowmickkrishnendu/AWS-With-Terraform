@@ -63,3 +63,33 @@ resource "aws_sns_topic" "topicname" {
     Name = var.topicname
   }
 }
+
+data "aws_iam_policy_document" "snspolicydocs" {
+  policy_id = "__default_policy_ID"
+
+  statement {
+    actions = [
+        "SNS:Subscribe",
+        "SNS:Receive",
+        "SNS:Publish",
+    ]
+    condition {
+      test = "ArnLike"
+      variable = "aws:SourceArn"
+
+      values = [
+        "*",
+      ]
+    }
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+
+    resources = [
+      aws_sns_topic.topicname.arn,
+    ]
+  }
+}
