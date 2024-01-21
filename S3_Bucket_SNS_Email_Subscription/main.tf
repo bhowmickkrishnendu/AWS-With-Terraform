@@ -24,3 +24,29 @@ resource "aws_s3_bucket_acl" "bucketacl" {
   bucket = aws_s3_bucket.name.id
   acl = "private"
 }
+
+data "aws_iam_policy_document" "bucketdata" {
+  statement {
+    sid = "AllowPublicRead"
+    principals {
+      type = "AWS"
+      identifiers = ["*"]
+    }
+    actions = [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket",
+        "s3:DeleteObject",
+        "s3:GetBucketLocation",
+    ]
+    resources = [
+        aws_s3_bucket.name.arn,
+        "${aws_s3_bucket.name.arn}/*",
+    ]
+    condition {
+      test = "IpAddress"
+      variable = "aws:SourceIp"
+      values = ["0.0.0.0/0", "10.0.0.0/16"]
+    }
+  }
+}
