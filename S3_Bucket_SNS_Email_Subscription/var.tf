@@ -7,3 +7,7 @@ variable "region" {
 variable "bucketname" {
   default = "krish-s3-demo"
 }
+
+variable "topicname" {
+  default = "krish-s3-demo"
+}
