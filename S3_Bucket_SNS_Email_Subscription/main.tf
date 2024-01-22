@@ -104,3 +104,13 @@ resource "aws_sns_topic_subscription" "sns_subscription_1" {
   protocol = email
   endpoint = "9635.krishnendu@gmail.com"
 }
+
+resource "aws_s3_bucket_notification" "bucket_notifi" {
+  bucket = aws_s3_bucket.name.id
+
+  topic {
+    topic_arn = aws_sns_topic.topicname.arn
+    events = ["*"]
+    filter_suffix = ["*"]
+  }
+}
