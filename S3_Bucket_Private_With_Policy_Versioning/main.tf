@@ -6,9 +6,9 @@ provider "aws" {
 
 # AWS S3 bucket resource for Tomcat server logs
 resource "aws_s3_bucket" "bucket_name" {
-    bucket = "krish_tomcat_log"  # Specify the desired S3 bucket name
+    bucket = "krish-tomcat-log"  # Specify the desired S3 bucket name
     tags = {
-      Name = "Krishnendu's Tomcat Server Log"  # Add a tag for better identification
+      Name = "krish-tomcat-log"  # Add a tag for better identification
     }
 }
 
@@ -27,6 +27,12 @@ resource "aws_s3_bucket_acl" "bucket_acl" {
 
     bucket = aws_s3_bucket.bucket_name.id  # Reference the created S3 bucket
     acl    = "private"  # Set ACL to private for restricted access
+}
+
+# Apply IAM policy to the S3 bucket for public read access with IP condition
+resource "aws_s3_bucket_policy" "bucket_policy" {
+    bucket = aws_s3_bucket.bucket_name.id
+    policy = data.aws_iam_policy_document.policy_details.json
 }
 
 # IAM policy document for allowing public read access with IP condition
@@ -51,15 +57,9 @@ data "aws_iam_policy_document" "policy_details" {
       condition {
         test     = "IpAddress"
         variable = "aws:SourceIp"
-        values   = ["10.0.0.0/16", "0.0.0.0/0"]
+        values   = ["10.0.0.0/16"]
       }
     } 
-}
-
-# Apply IAM policy to the S3 bucket for public read access with IP condition
-resource "aws_s3_bucket_policy" "bucket_policy" {
-    bucket = aws_s3_bucket.bucket_name.id
-    policy = data.aws_iam_policy_document.policy_details.json
 }
 
 # Define Terraform Output to expose S3 Bucket ARN
