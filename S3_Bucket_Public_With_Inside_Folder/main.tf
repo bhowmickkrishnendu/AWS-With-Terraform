@@ -40,6 +40,14 @@ resource "aws_s3_bucket_acl" "bucket_acl" {
     acl = "public-read"  # Set ACL to public-read for public access
 }
 
+# Associate IAM Policy Document with S3 Bucket
+resource "aws_s3_bucket_policy" "bucket_policy" {
+  bucket = aws_s3_bucket.bucket_name.id  # Reference the created S3 bucket
+
+  # Specify the IAM policy document by referencing the data block
+  policy = data.aws_iam_policy_document.s3_bucket_policy.json
+}
+
 # Define S3 Bucket Policy
 data "aws_iam_policy_document" "s3_bucket_policy" {
   statement {
@@ -60,14 +68,6 @@ data "aws_iam_policy_document" "s3_bucket_policy" {
       "${aws_s3_bucket.bucket_name.arn}/*",
     ]
   }
-}
-
-# Associate IAM Policy Document with S3 Bucket
-resource "aws_s3_bucket_policy" "bucket_policy" {
-  bucket = aws_s3_bucket.bucket_name.id  # Reference the created S3 bucket
-
-  # Specify the IAM policy document by referencing the data block
-  policy = data.aws_iam_policy_document.s3_bucket_policy.json
 }
 
 # Define S3 Objects
