@@ -122,3 +122,10 @@ resource "aws_sns_topic_subscription" "sns_subscription_1" {
   endpoint = "9635.krishnendu@gmail.com"
 }
 
+output "s3_arn" {
+  value = aws_s3_bucket.name.arn
+}
+
+output "sns_arn" {
+  value = aws_sns_topic.topicname.arn
+}
