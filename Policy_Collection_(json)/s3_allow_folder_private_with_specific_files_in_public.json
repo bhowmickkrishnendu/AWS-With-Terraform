@@ -1,0 +1,63 @@
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowPrivateReadAll",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:ListBucket",
+                "s3:DeleteObject",
+                "s3:GetBucketLocation"
+            ],
+            "Resource": [
+                "arn:aws:s3:::demo",
+                "arn:aws:s3:::demo/*"
+            ],
+            "Condition": {
+                "IpAddress": {
+                    "aws:SourceIP": [
+                        "172.21.104.16"
+                    ]
+                }
+            }
+        },
+        {
+            "Sid": "AllowPublicReadForProfileFiles",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::demo/*/profile_pic.jpg"
+            ]
+        },
+        {
+            "Sid": "DenyAccessToOtherObjects",
+            "Effect": "Deny",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::demo/*"
+            ],
+            "Condition": {
+                "NotIpAddress": {
+                    "aws:SourceIp": [
+                        "0.0.0.0/0"
+                    ]
+                }
+            }
+        }
+    ]
+}
