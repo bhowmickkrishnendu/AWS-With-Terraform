@@ -5,7 +5,7 @@
             "Effect": "Deny",
             "Principal": "*",
             "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::deny/sensitive-data/*"
+            "Resource": "arn:aws:s3:::demo/sensitive-data/*"
         }
     ]
 }
