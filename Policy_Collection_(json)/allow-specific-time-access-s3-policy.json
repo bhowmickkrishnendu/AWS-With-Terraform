@@ -1,0 +1,19 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::demo/*",
+            "Condition": {
+                "DateGreaterThan": {
+                    "aws:CurrentTime": "2024-01-01T08:00:00Z"
+                },
+                "DateLessThan": {
+                    "aws:CurrentTime": "2024-01-01T18:00:00Z"
+                }
+            }
+        }
+    ]
+}
