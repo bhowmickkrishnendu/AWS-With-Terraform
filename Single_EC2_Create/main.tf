@@ -28,7 +28,7 @@ resource "aws_instance" "Mumbai_First_Server" {
 
     ami = "ami-0a7cf821b91bcccbc"                                           # Specify the Amazon Machine Image (AMI)
     instance_type = "t2.micro"                                              # Specify the instance type
-    subnet_id = "subnet-05160f5164e900466"                                  # Specify the subnet ID
+    subnet_id = "subnet-04d2127613eb2e422"                                  # Specify the subnet ID
     vpc_security_group_ids = [ "${aws_security_group.allow_ssh.id}" ]       # Specify the security group ID
     associate_public_ip_address = true                                      # Assign a public IP address to the instance
     disable_api_termination = true                                          # Disable API termination for the instance
@@ -56,7 +56,7 @@ resource "aws_instance" "Mumbai_First_Server" {
 resource "aws_security_group" "allow_ssh" {
     name = "Mumbai_First_Server-SG"
     description = "Control Traffic"
-    vpc_id = "vpc-0e5c7dd3912759f92"                                # Specify the VPC ID
+    vpc_id = "vpc-0243e953b038c0d1f"                                # Specify the VPC ID
 
     # Ingress rule to allow SSH traffic
     ingress {
