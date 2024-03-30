@@ -56,3 +56,26 @@ resource "aws_security_group" "allow_ssh" {
   }
 }
 
+# AWS EC2 instance resource
+resource "aws_instance" "instance_details" {
+  ami = var.amazon_linux_2023_ami
+  instance_type = var.t2.micro
+  subnet_id = var.public_subnet_id
+  vpc_security_group_ids = [ "${aws_security_group.allow_ssh}" ]
+  associate_public_ip_address = true
+  disable_api_termination = true
+  key_name = var.instance_name
+
+  # root block device configuration
+  root_block_device {
+    volume_size = 8
+    volume_type = "gp3"
+    delete_on_termination = false
+  }
+
+  # tags for ec2 instace
+  tags = {
+    Name = var.instance_name
+  }
+}
+
