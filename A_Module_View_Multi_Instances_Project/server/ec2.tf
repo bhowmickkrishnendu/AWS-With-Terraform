@@ -18,3 +18,41 @@ resource "local_file" "key_store_locally" {
   content = tls_private_key.rsa.private_key_pem
   filename = "${var.instance_name}.pem"
 }
+
+# AWS security group resource to control traffic
+resource "aws_security_group" "allow_ssh" {
+  name = "${var.instance_name}-SG"
+  vpc_id = var.vpc_id
+
+  # Ingress rule allow SSH traffic
+  ingress {
+    description = "Allow default SSH traffic"
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = [ "0.0.0.0/0" ]
+  }
+
+  # Ingress rule allow custom SSH traffic
+  ingress {
+    description = "Allow custom port SSH traffic"
+    from_port = 244
+    to_port = 244
+    protocol = "tcp"
+    cidr_blocks = [ "0.0.0.0/0" ]
+  }
+
+  # Allow outbound traffic
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = [ "0.0.0.0/0" ]
+  }
+
+  # add security group tags
+  tags = {
+    Name = "${var.instance_name}-SG"
+  }
+}
+
