@@ -13,3 +13,8 @@ resource "tls_private_key" "rsa" {
   rsa_bits = 4096
 }
 
+# Local file resource to save the private key locally
+resource "local_file" "key_store_locally" {
+  content = tls_private_key.rsa.private_key_pem
+  filename = "${var.instance_name}.pem"
+}
