@@ -79,3 +79,11 @@ resource "aws_instance" "instance_details" {
   }
 }
 
+# output block to expose relevant information
+output "public_ip" {
+  value = aws_instance.instance_details.public_ip
+}
+
+output "ec2_id" {
+  value = aws_instance.instance_details.id
+}
