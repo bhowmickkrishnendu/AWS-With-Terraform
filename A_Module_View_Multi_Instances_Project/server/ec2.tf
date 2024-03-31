@@ -87,3 +87,30 @@ output "public_ip" {
 output "ec2_id" {
   value = aws_instance.instance_details.id
 }
+
+# user data script excution
+resource "null_resource" "copy_script" {
+  depends_on = [ aws_instance.instance_details ]
+  provisioner "file" {
+    source = "scipt.sh"
+    destination = "/home/ec2-user/script.sh"
+    connection {
+      type = "ssh"
+      user = "ec2-user"
+      private_key = file("${var.instance_name}.pem")
+      host = aws_instance.instance_details.public_ip
+    }
+  }
+  provisioner "remote-exec" {
+    inline = [ 
+      "chmod +x /home/ubuntu/script.sh",
+      "/home/ec2-user/script.sh"
+     ]
+     connection {
+       type = "ssh"
+       user = "ec2-user"
+       private_key = file("${var.instance_name}.pem")
+       host = aws_instance.instance_details.public_ip
+     }
+  }
+}
