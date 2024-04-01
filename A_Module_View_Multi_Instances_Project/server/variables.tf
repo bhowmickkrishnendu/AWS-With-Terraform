@@ -15,9 +15,9 @@ variable "vpc_id" {
 }
 
 variable "public_subnet_id" {
-  default = "vpc-0243e953b038c0d1f"
+  default = "subnet-04d2127613eb2e422"
 }
 
-variable "t2.micro" {
+variable "t2micro" {
   default = "t2.micro"
 }

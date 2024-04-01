@@ -59,9 +59,9 @@ resource "aws_security_group" "allow_ssh" {
 # AWS EC2 instance resource
 resource "aws_instance" "instance_details" {
   ami = var.amazon_linux_2023_ami
-  instance_type = var.t2.micro
+  instance_type = var.t2micro
   subnet_id = var.public_subnet_id
-  vpc_security_group_ids = [ "${aws_security_group.allow_ssh}" ]
+  vpc_security_group_ids = [ "${aws_security_group.allow_ssh.id}" ]
   associate_public_ip_address = true
   disable_api_termination = true
   key_name = var.instance_name
@@ -92,7 +92,7 @@ output "ec2_id" {
 resource "null_resource" "copy_script" {
   depends_on = [ aws_instance.instance_details ]
   provisioner "file" {
-    source = "scipt.sh"
+    source = "script.sh"
     destination = "/home/ec2-user/script.sh"
     connection {
       type = "ssh"
@@ -103,7 +103,7 @@ resource "null_resource" "copy_script" {
   }
   provisioner "remote-exec" {
     inline = [ 
-      "chmod +x /home/ubuntu/script.sh",
+      "chmod +x /home/ec2-user/script.sh",
       "/home/ec2-user/script.sh"
      ]
      connection {
