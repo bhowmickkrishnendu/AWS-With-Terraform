@@ -1,56 +1,84 @@
 #!/bin/bash
 
-# 1. Generate a password
-PASSWORD=$(tr -dc 'A-Za-z0-9!@#$%^&*()+' < /dev/urandom | head -c 20)
-echo "Generated Password: $PASSWORD"
+set -e  # Exit immediately if a command exits with a non-zero status
 
-# 2. Generate a username
-USERNAME=$(tr -dc 'a-z' < /dev/urandom | head -c 6)
-echo "Generated Username: $USERNAME"
+echo "Starting script execution"
 
-# 3. Change default SSH port from 22 to 244
+# Capture username and password from credentials.txt
+USERNAME=$(grep 'Generated Username' /tmp/credentials.txt | cut -d ' ' -f 3)
+PASSWORD=$(grep 'Generated Password' /tmp/credentials.txt | cut -d ' ' -f 3)
+
+echo "Captured USERNAME: $USERNAME"
+echo "Captured PASSWORD: $PASSWORD"
+
+# Change default SSH port from 22 to 244
+echo "Changing SSH port"
 sudo sed -i 's/^#Port 22/Port 244/' /etc/ssh/sshd_config
 sudo sed -i 's/^Port 22/Port 244/' /etc/ssh/sshd_config
 
-# 4. Enable PasswordAuthentication
+# Enable PasswordAuthentication
+echo "Enabling PasswordAuthentication"
 sudo sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 sudo sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-# 5. Enable ChallengeResponseAuthentication
+# Enable ChallengeResponseAuthentication
+echo "Enabling ChallengeResponseAuthentication"
 sudo sed -i 's/^#ChallengeResponseAuthentication yes/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config
 
-# 6. PermitRootLogin prohibit-password
+# PermitRootLogin prohibit-password
+echo "Permitting RootLogin"
 sudo sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
 sudo sed -i 's/^PermitRootLogin no/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
 
-# 7. Set MaxAuthTries to 5
+# Set MaxAuthTries to 5
+echo "Setting MaxAuthTries"
 echo "MaxAuthTries 5" | sudo tee -a /etc/ssh/sshd_config
 
-# 8. Set MaxSessions to 2
+# Set MaxSessions to 2
+echo "Setting MaxSessions"
 echo "MaxSessions 2" | sudo tee -a /etc/ssh/sshd_config
 
-# 9. Deny default user ec2-user login
-echo "DenyUsers ec2-user" | sudo tee -a /etc/ssh/sshd_config
+# Deny default user ec2-user login
+echo "Denying ec2-user login"
+#echo "DenyUsers ec2-user" | sudo tee -a /etc/ssh/sshd_config
 
-# 10. Comment out Include directive to avoid conflicting settings
+# Comment out Include directive to avoid conflicting settings
+echo "Commenting out Include directive"
 sudo sed -i 's/^Include \/etc\/ssh\/sshd_config\.d\/\*\.conf/#Include \/etc\/ssh\/sshd_config\.d\/\*\.conf/' /etc/ssh/sshd_config
 
-# 11. Add the generated user
-sudo useradd -m $USERNAME
+# Add the generated user
+echo "Adding user $USERNAME"
+sudo useradd -m "$USERNAME" --badname
 
-# 12. Set the generated password for the new user
-echo "$USERNAME:$PASSWORD" | sudo chpasswd
+# Set the generated password for the new user
+echo "Setting password for $USERNAME"
+echo "$USERNAME:$PASSWORD" 
+sudo sh -c "echo '$USERNAME:$PASSWORD' | chpasswd"
+sudo grep $USERNAME /etc/shadow
 
-# 13. Add the new user to the sudo group
-sudo usermod -aG wheel $USERNAME
+# Add the new user to the sudo group
+echo "Adding $USERNAME to sudo group"
+sudo usermod -aG wheel "$USERNAME"
 
-# 14. Give the new user full access in the visudo file
-echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USERNAME
+# Safely add the new user to the sudoers file using sed
+echo "Updating sudoers file"
+sudo sed -i "/^root.*ALL=(ALL:ALL) ALL$/a $USERNAME ALL=NOPASSWD: ALL" /etc/sudoers
+sudo sed -i "/^%admin.*ALL=(ALL) ALL$/a %$USERNAME ALL=(ALL) NOPASSWD:ALL" /etc/sudoers
+sudo sed -i "/^%sudo.*ALL=(ALL:ALL) ALL$/a %$USERNAME ALL=(ALL) NOPASSWD:ALL" /etc/sudoers
 
-# 15. Set proper ownership and permissions for /bin/bash and /home/ec2-user
-sudo chown -R $USERNAME:$USERNAME /home/ec2-user
+# Set proper ownership and permissions for /bin/bash and /home/ec2-user
+echo "Setting ownership and permissions"
+sudo chown -R "$USERNAME:$USERNAME" /home/ec2-user
 
-# 16. Restart the SSH service
+# User Permissions
+sudo mkdir -p /home/$USERNAME/.ssh
+sudo cp /home/ec2-user/.ssh/authorized_keys /home/$USERNAME/.ssh/
+sudo chown -R $USERNAME:$USERNAME /home/$USERNAME/.ssh
+sudo chmod 700 /home/$USERNAME/.ssh
+sudo chmod 600 /home/$USERNAME/.ssh/authorized_keys
+
+# Restart the SSH service
+echo "Restarting SSH service"
 sudo systemctl restart sshd
 
 echo "Setup complete. The system will now restart."
