@@ -9,5 +9,6 @@ variable "role_name" {
 }
 
 variable "user_policy_name" {
-  
+  description = "The name of IAM policy to create."
+  type = string
 }
