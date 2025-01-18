@@ -1,4 +1,3 @@
-# user_policy.json.tpl
 {
   "Version": "2012-10-17",
   "Statement": [

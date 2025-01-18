@@ -4,7 +4,7 @@ resource "aws_iam_role" "role_details" {
   name = var.role_name              # Specify the name of the IAM role
 
   # Use the template file for assume role policy
-  assume_role_policy = file("${path.module}/assume_role_policy.json.tpl")
+  assume_role_policy = file("${path.module}/template/assume_role_policy.json.tpl")
 
   tags = {
     name    = var.role_name              # Add a tag for better identification
@@ -19,7 +19,7 @@ resource "aws_iam_policy" "policy_details" {
     description = "This is the user policy"  # Add a description for the IAM policy
     
     # Use the template file for user policy
-    policy = file("${path.module}/user_policy.json.tpl")
+    policy = file("${path.module}/template/user_policy.json.tpl")
 }
 
 # Attach IAM policy to IAM Role
