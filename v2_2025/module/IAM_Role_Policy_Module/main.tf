@@ -23,3 +23,19 @@ resource "aws_iam_policy" "policy_details" {
 }
 
 # Attach IAM policy to IAM Role
+resource "aws_iam_role_policy_attachment" "attaching_policy" {
+  policy_arn = aws_iam_policy.policy_details.arn
+  role = aws_iam_role.role_details.name
+}
+
+# Attach AmazonSSMManagedInstanceCore AWS managed policy to IAM role
+resource "aws_iam_role_policy_attachment" "attaching_ssm_policy" {
+    policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    role       = aws_iam_role.role_details.name
+}
+
+# AWS IAM instance profile resource creation
+resource "aws_iam_instance_profile" "profile_details" {
+  name = aws_iam_role.role_details.name
+  role = aws_iam_role.role_details.name
+}
