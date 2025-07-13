@@ -16,27 +16,30 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
 
 jobs:
   init:
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/init.yml@v1.0.1
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/init.yml@v1.0.2
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   validate:
     needs: init
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/validate.yml@v1.0.1
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/validate.yml@v1.0.2
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
 
   plan:
     needs: validate
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/plan.yml@v1.0.1
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/plan.yml@v1.0.2
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   approve:
     if: github.event_name == 'workflow_dispatch'
@@ -52,13 +55,19 @@ jobs:
   apply:
     if: github.event.inputs.action == 'apply'
     needs: approve
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/apply.yml@v1.0.1
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/apply.yml@v1.0.2
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   destroy:
     if: github.event.inputs.action == 'destroy'
     needs: approve
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/destroy.yml@v1.0.1
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/destroy.yml@v1.0.2
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
