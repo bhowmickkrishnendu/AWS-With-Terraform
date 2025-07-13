@@ -1,0 +1,61 @@
+name: CI/CD Terraform Pipeline
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to take (apply/destroy)"
+        required: true
+        default: "apply"
+        type: choice
+        options:
+          - apply
+          - destroy
+
+env:
+  AWS_REGION: ap-south-1
+
+jobs:
+  init:
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/shared/init.yml@v1.0.0
+    with:
+      working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
+
+  validate:
+    needs: init
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/shared/validate.yml@v1.0.0
+    with:
+      working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
+
+  plan:
+    needs: validate
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/shared/plan.yml@v1.0.0
+    with:
+      working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
+
+  approve:
+    if: github.event_name == 'workflow_dispatch'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment:
+      name: uat
+      url: https://your-company-uatsystem.com
+    steps:
+      - name: Await manual approval before apply/destroy
+        run: echo "Manual approval gate"
+
+  apply:
+    if: github.event.inputs.action == 'apply'
+    needs: approve
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/shared/apply.yml@v1.0.0
+    with:
+      working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
+
+  destroy:
+    if: github.event.inputs.action == 'destroy'
+    needs: approve
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/shared/destroy.yml@v1.0.0
+    with:
+      working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
