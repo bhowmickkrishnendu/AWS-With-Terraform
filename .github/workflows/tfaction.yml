@@ -19,7 +19,7 @@ env:
 
 jobs:
   init:
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/init.yml@v1.0.6
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/init.yml@v1.0.7
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
     secrets:
@@ -28,7 +28,7 @@ jobs:
 
   validate:
     needs: init
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/validate.yml@v1.0.6
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/validate.yml@v1.0.7
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
     secrets:
@@ -38,7 +38,7 @@ jobs:
 
   plan:
     needs: validate
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/plan.yml@v1.0.6
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/plan.yml@v1.0.7
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
     secrets:
@@ -59,7 +59,7 @@ jobs:
   apply:
     if: github.event.inputs.action == 'apply'
     needs: approve
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/apply.yml@v1.0.6
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/apply.yml@v1.0.7
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
     secrets:
@@ -69,7 +69,7 @@ jobs:
   destroy:
     if: github.event.inputs.action == 'destroy'
     needs: approve
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/destroy.yml@v1.0.6
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/destroy.yml@v1.0.7
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
     secrets:
