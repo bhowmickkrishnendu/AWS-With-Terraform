@@ -13,7 +13,9 @@
 
 # Ignore any credentials or configuration files
 *.pem
+# Ignore all tfvars except specific one
 *.tfvars
+!v2_2025/AWS-Main/IAM_Role_Policy_Root/terraform.tfvars
 *.env
 *.key
 
