@@ -1,5 +1,6 @@
 name: CI/CD Terraform Pipeline
 
+# Trigger on PR merge to master and manual dispatch with action selection
 on:
   push:
     branches: [ master ]
@@ -19,6 +20,7 @@ env:
 
 jobs:
   init:
+    # Reusable init workflow
     uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/init.yml@v1.0.14
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
@@ -35,7 +37,6 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-
   plan:
     needs: validate
     uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/plan.yml@v1.0.14
@@ -50,14 +51,13 @@ jobs:
     needs: plan
     runs-on: ubuntu-latest
     environment:
-      name: approval
-      url: https://krishnendu.online
+      name: approval  # Must match environment created in repo
     steps:
       - name: Await manual approval before apply/destroy
-        run: echo "Manual approval gate"
+        run: echo "Waiting for manual approval..."
 
   apply:
-    if: github.event.inputs.action == 'apply'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
     needs: approve
     uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/apply.yml@v1.0.14
     with:
@@ -67,7 +67,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   destroy:
-    if: github.event.inputs.action == 'destroy'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
     needs: approve
     uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/destroy.yml@v1.0.14
     with:
