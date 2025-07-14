@@ -1,8 +1,6 @@
 name: CI/CD Terraform Pipeline
-
-# Trigger on PR merge to master and manual dispatch with action selection
 on:
-  push:
+  pull_request:
     branches: [ master ]
   workflow_dispatch:
     inputs:
@@ -20,8 +18,7 @@ env:
 
 jobs:
   init:
-    # Reusable init workflow
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/init.yml@v1.0.14
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/init.yml@v1.0.18
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
     secrets:
@@ -30,7 +27,7 @@ jobs:
 
   validate:
     needs: init
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/validate.yml@v1.0.14
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/validate.yml@v1.0.18
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
     secrets:
@@ -39,37 +36,58 @@ jobs:
 
   plan:
     needs: validate
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/plan.yml@v1.0.14
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/plan.yml@v1.0.18
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-  approve:
-    if: github.event_name == 'workflow_dispatch'
+  # Manual review gate for both PR and workflow_dispatch
+  plan-review:
     needs: plan
     runs-on: ubuntu-latest
     environment:
-      name: approval  # Must match environment created in repo
+      name: plan-review
+      url: https://krishnendu.online
     steps:
-      - name: Await manual approval before apply/destroy
-        run: echo "Waiting for manual approval..."
+      - name: Plan Review Gate
+        run: |
+          echo "🔍 TERRAFORM PLAN REVIEW REQUIRED"
+          echo "================================================"
+          echo "Please review the plan output for:"
+          echo "✅ No unexpected resource deletions (destroy)"
+          echo "✅ No unwanted resource recreations (replace)"
+          echo "✅ IAM policy changes are safe"
+          echo "✅ Security group modifications reviewed"
+          echo "✅ Network/VPC changes validated"
+          echo "✅ Database/storage changes are safe"
+          echo "✅ Resource naming changes won't cause issues"
+          echo "================================================"
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "================================================"
+          echo "Manual approval required before proceeding..."
 
+  # Apply job - runs after plan review approval
   apply:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
-    needs: approve
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/apply.yml@v1.0.14
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply') ||
+      (github.event_name == 'pull_request')
+    needs: plan-review
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/apply.yml@v1.0.18
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+  # Destroy job - only for manual workflow_dispatch
   destroy:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
-    needs: approve
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/destroy.yml@v1.0.14
+    needs: plan-review
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/destroy.yml@v1.0.18
     with:
       working-directory: v2_2025/AWS-Main/IAM_Role_Policy_Root
     secrets:
