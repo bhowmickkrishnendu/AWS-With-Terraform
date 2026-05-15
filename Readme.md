@@ -60,4 +60,4 @@ A collection of Terraform modules and sample projects for provisioning AWS resou
 
 ## License
 
-This repository is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This repository is licensed under the MIT License. See [LICENSE](LICENSE) for details..
