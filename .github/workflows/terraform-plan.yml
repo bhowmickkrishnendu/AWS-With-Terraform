@@ -1,0 +1,27 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  networking-dev:
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@main
+
+    with:
+      environment: dev
+      component: networking
+      aws_region: ap-southeast-2
+      terraform_version: 1.14
+      tfvars_file: dev.tfvars
+      role_to_assume: arn:aws:iam::234617061868:role/github-actions-terraform-role
+
+    secrets:
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}

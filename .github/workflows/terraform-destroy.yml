@@ -1,0 +1,24 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: "Type DESTROY to continue"
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  networking-dev:
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-destroy.yml@main
+
+    with:
+      environment: dev
+      component: networking
+      aws_region: ap-southeast-2
+      tfvars_file: dev.tfvars
+      confirm_destroy: ${{ github.event.inputs.confirm_destroy }}
+      role_to_assume: arn:aws:iam::234617061868:role/github-actions-terraform-role
