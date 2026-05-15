@@ -16,9 +16,15 @@ jobs:
     name: Terraform Plan
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        include:
+          - environment: dev
+            component: networking
+
     defaults:
       run:
-        working-directory: environments/dev/networking
+        working-directory: environments/${{ matrix.environment }}/${{ matrix.component }}
 
     steps:
       - name: Checkout Repository
@@ -38,13 +44,17 @@ jobs:
         run: terraform fmt -check -recursive
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -input=false
 
       - name: Terraform Validate
-        run: terraform validate
+        run: terraform validate -no-color
 
       - name: Terraform Plan
-        run: terraform plan -no-color
+        run: |
+          terraform plan \
+            -no-color \
+            -input=false \
+            -var-file="${{ matrix.environment }}.tfvars"
 
       - name: Setup Infracost
         uses: infracost/actions/setup@v3
@@ -53,6 +63,7 @@ jobs:
         run: |
           infracost breakdown \
             --path . \
+            --terraform-var-file="${{ matrix.environment }}.tfvars" \
             --format table
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
