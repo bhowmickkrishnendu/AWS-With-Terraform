@@ -56,9 +56,9 @@ jobs:
             component: networking
             aws_region: ap-south-1
 
-          # - environment: dev
-          #   component: compute
-          #   aws_region: ap-south-1
+          - environment: dev
+            component: compute
+            aws_region: ap-south-1
 
           # - environment: uat
           #   component: networking
