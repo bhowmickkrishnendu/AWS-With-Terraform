@@ -5,4 +5,4 @@ instance_type = "t3.micro"
 
 bastion_ssh_cidr = "10.0.0.0/16"
 
-# public_key = "PASTE-YOUR-PUBLIC-KEY-HERE."
+# public_key = "PASTE-YOUR-PUBLIC-KEY-HERE"
