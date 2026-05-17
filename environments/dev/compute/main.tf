@@ -11,7 +11,7 @@ data "terraform_remote_state" "networking" {
 resource "aws_key_pair" "deployer" {
   key_name = "${var.environment}-key"
 
-  public_key = file("C:/Users/Krish/.ssh/id_rsa.pub")
+  public_key = var.public_key
 }
 
 resource "aws_security_group" "bastion_sg" {
