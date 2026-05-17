@@ -3,4 +3,4 @@ environment = "dev"
 
 instance_type = "t3.micro"
 
-# public_key = "PASTE-YOUR-PUBLIC-KEY-HERE"
+# public_key = "PASTE-YOUR-PUBLIC-KEY-HERE."
