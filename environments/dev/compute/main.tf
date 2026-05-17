@@ -29,12 +29,12 @@ resource "aws_security_group" "bastion_sg" {
   }
 
   egress {
-    description = "SSH to private EC2"
+    description = "SSH to private EC2 within the VPC"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
 
-    security_groups = [aws_security_group.private_ec2_sg.id]
+    cidr_blocks = [var.bastion_ssh_cidr]
   }
 
   egress {
