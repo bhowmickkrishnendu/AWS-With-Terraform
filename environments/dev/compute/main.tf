@@ -25,13 +25,23 @@ resource "aws_security_group" "bastion_sg" {
     to_port     = 22
     protocol    = "tcp"
 
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.bastion_ssh_cidr]
   }
 
   egress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
+    description = "SSH to private EC2"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+
+    security_groups = [aws_security_group.private_ec2_sg.id]
+  }
+
+  egress {
+    description = "HTTPS access for package updates and SSM"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
 
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -43,25 +53,13 @@ resource "aws_security_group" "bastion_sg" {
 }
 
 
-module "bastion" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
-  version = "~> 6.0"
-
-  name = "${var.environment}-bastion"
-
-  instance_type = var.instance_type
-
-  ami = "ami-0f58b397bc5c1f2e8"
-
-  subnet_id = data.terraform_remote_state.networking.outputs.public_subnets[0]
-
-  key_name = aws_key_pair.deployer.key_name
-
-  vpc_security_group_ids = [
-    aws_security_group.bastion_sg.id
-  ]
-
+resource "aws_instance" "bastion" {
+  ami                         = "ami-0f58b397bc5c1f2e8"
+  instance_type               = var.instance_type
+  subnet_id                   = data.terraform_remote_state.networking.outputs.public_subnets[0]
+  key_name                    = aws_key_pair.deployer.key_name
   associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.bastion_sg.id]
 
   tags = {
     Name        = "${var.environment}-bastion"
@@ -87,9 +85,10 @@ resource "aws_security_group" "private_ec2_sg" {
   }
 
   egress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
+    description = "HTTPS access for SSM and package updates"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
 
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -132,27 +131,13 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 }
 
 
-module "private_ec2" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
-  version = "~> 6.0"
-
-  name = "${var.environment}-private-ec2"
-
-  instance_type = var.instance_type
-
-  ami = "ami-0f58b397bc5c1f2e8"
-
-  subnet_id = data.terraform_remote_state.networking.outputs.private_subnets[0]
-
-  key_name = aws_key_pair.deployer.key_name
-
-  vpc_security_group_ids = [
-    aws_security_group.private_ec2_sg.id
-  ]
-
-  associate_public_ip_address = false
-
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+resource "aws_instance" "private_ec2" {
+  ami                    = "ami-0f58b397bc5c1f2e8"
+  instance_type          = var.instance_type
+  subnet_id              = data.terraform_remote_state.networking.outputs.private_subnets[0]
+  key_name               = aws_key_pair.deployer.key_name
+  vpc_security_group_ids = [aws_security_group.private_ec2_sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
   tags = {
     Name        = "${var.environment}-private-ec2"
