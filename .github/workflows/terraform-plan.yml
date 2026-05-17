@@ -12,15 +12,33 @@ permissions:
   pull-requests: write
 
 jobs:
-  networking-dev:
+  terraform-plan:
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        include:
+          - environment: dev
+            component: networking
+            aws_region: ap-south-1
+
+          # - environment: dev
+          #   component: compute
+          #   aws_region: ap-south-1
+
+          # - environment: uat
+          #   component: networking
+          #   aws_region: ap-south-1
+
     uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@main
 
     with:
-      environment: dev
-      component: networking
-      aws_region: ap-southeast-2
+      environment: ${{ matrix.environment }}
+      component: ${{ matrix.component }}
+      aws_region: ${{ matrix.aws_region }}
       terraform_version: 1.14
-      tfvars_file: dev.tfvars
+      tfvars_file: ${{ matrix.environment }}.tfvars
       role_to_assume: arn:aws:iam::234617061868:role/github-actions-terraform-role
 
     secrets:
