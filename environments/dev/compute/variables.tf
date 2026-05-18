@@ -18,3 +18,7 @@ variable "public_key" {
   type      = string
   sensitive = true
 }
+
+variable "ami_id" {
+  type = string
+}
