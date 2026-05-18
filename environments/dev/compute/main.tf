@@ -25,7 +25,7 @@ resource "aws_security_group" "bastion_sg" {
     to_port     = 22
     protocol    = "tcp"
 
-    cidr_blocks = [var.bastion_ssh_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -34,7 +34,7 @@ resource "aws_security_group" "bastion_sg" {
     to_port     = 22
     protocol    = "tcp"
 
-    cidr_blocks = [var.bastion_ssh_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
