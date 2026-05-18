@@ -43,3 +43,4 @@ jobs:
 
     secrets:
       INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+      SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
