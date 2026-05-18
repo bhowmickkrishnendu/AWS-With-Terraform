@@ -41,10 +41,6 @@ This repository implements a robust CI/CD pipeline for Terraform using GitHub Ac
 - Go to the Actions tab, select the workflow, and choose `apply` or `destroy` as the action.
 - The pipeline will run up to the plan-review step and wait for manual approval before proceeding.
 
-## Working Directory
-- All Terraform actions are performed in:  
-  `v2_2025/AWS-Main/IAM_Role_Policy_Root`
-
 ## Customization
 - You can modify the working directory or extend the workflow as needed for your project structure.
 
