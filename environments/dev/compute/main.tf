@@ -53,7 +53,9 @@ resource "aws_security_group" "bastion_sg" {
 }
 
 
-resource "aws_instance" "bastion" {
+module "bastion" {
+  source  = "terraform-aws-modules/ec2-instance/aws"
+  version = "~> 6.0"
   ami                         = var.ami_id
   instance_type               = var.instance_type
   subnet_id                   = data.terraform_remote_state.networking.outputs.public_subnets[0]
@@ -131,7 +133,9 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 }
 
 
-resource "aws_instance" "private_ec2" {
+module "private_ec2" {
+  source  = "terraform-aws-modules/ec2-instance/aws"
+  version = "~> 6.0"
   ami                    = var.ami_id
   instance_type          = var.instance_type
   subnet_id              = data.terraform_remote_state.networking.outputs.private_subnets[0]
