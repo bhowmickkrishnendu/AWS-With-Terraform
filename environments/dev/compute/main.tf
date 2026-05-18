@@ -54,7 +54,7 @@ resource "aws_security_group" "bastion_sg" {
 
 
 resource "aws_instance" "bastion" {
-  ami                         = "ami-0f58b397bc5c1f2e8"
+  ami                         = "ami-0388e3ada3d9812da"
   instance_type               = var.instance_type
   subnet_id                   = data.terraform_remote_state.networking.outputs.public_subnets[0]
   key_name                    = aws_key_pair.deployer.key_name
@@ -132,7 +132,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 
 
 resource "aws_instance" "private_ec2" {
-  ami                    = "ami-0f58b397bc5c1f2e8"
+  ami                    = "ami-0388e3ada3d9812da"
   instance_type          = var.instance_type
   subnet_id              = data.terraform_remote_state.networking.outputs.private_subnets[0]
   key_name               = aws_key_pair.deployer.key_name
