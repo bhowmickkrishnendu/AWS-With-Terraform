@@ -53,20 +53,31 @@ resource "aws_security_group" "bastion_sg" {
 }
 
 
-module "bastion" {
+module "instances" {
   source  = "terraform-aws-modules/ec2-instance/aws"
   version = "~> 6.0"
-  ami                         = var.ami_id
-  instance_type               = var.instance_type
-  subnet_id                   = data.terraform_remote_state.networking.outputs.public_subnets[0]
-  key_name                    = aws_key_pair.deployer.key_name
-  associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.bastion_sg.id]
 
-  tags = {
-    Name        = "${var.environment}-bastion"
-    Environment = var.environment
+  for_each = var.instance_definitions
+
+  ami           = coalesce(each.value.ami, var.ami_id)
+  instance_type = coalesce(each.value.instance_type, var.instance_type)
+
+  subnet_id = each.value.subnet_tier == "public" ? data.terraform_remote_state.networking.outputs.public_subnets[0] : data.terraform_remote_state.networking.outputs.private_subnets[0]
+
+  key_name                    = aws_key_pair.deployer.key_name
+  associate_public_ip_address = each.value.associate_public_ip_address
+
+  vpc_security_group_ids = each.key == "bastion" ? [aws_security_group.bastion_sg.id] : [aws_security_group.private_ec2_sg.id]
+
+  iam_instance_profile = each.value.use_iam_profile ? aws_iam_instance_profile.ec2_profile.name : null
+
+  root_block_device = {
+    volume_size = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).volume_size
+    volume_type = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).volume_type
+    delete_on_termination = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).delete_on_termination
   }
+
+  tags = merge({ Name = "${var.environment}-${each.key}", Environment = var.environment }, coalesce(each.value.extra_tags, {}))
 }
 
 resource "aws_security_group" "private_ec2_sg" {
@@ -133,19 +144,4 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 }
 
 
-module "private_ec2" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
-  version = "~> 6.0"
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  subnet_id              = data.terraform_remote_state.networking.outputs.private_subnets[0]
-  key_name               = aws_key_pair.deployer.key_name
-  vpc_security_group_ids = [aws_security_group.private_ec2_sg.id]
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
-
-  tags = {
-    Name        = "${var.environment}-private-ec2"
-    Environment = var.environment
-  }
-}
-
+/* module "private_ec2" replaced by dynamic module "instances" (for_each) - see variable `instance_definitions` in variables.tf */
