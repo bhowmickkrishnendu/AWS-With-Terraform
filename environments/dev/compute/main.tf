@@ -27,7 +27,8 @@ resource "aws_key_pair" "ec2" {
 resource "aws_secretsmanager_secret" "ec2_key" {
   for_each = var.instance_definitions
 
-  name = "${var.environment}-${each.key}-private-key"
+  name                    = "${var.environment}-${each.key}-private-key"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "ec2_key" {
