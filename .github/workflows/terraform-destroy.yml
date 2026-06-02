@@ -19,7 +19,7 @@ on:
         options:
           - networking
           - compute
-          # - ecr
+          - storage
 
       confirm_destroy:
         description: "Type DESTROY to continue"
