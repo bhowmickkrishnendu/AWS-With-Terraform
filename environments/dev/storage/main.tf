@@ -47,6 +47,21 @@ resource "aws_s3_bucket_policy" "public_read" {
     Version = "2012-10-17"
     Statement = [
       {
+        Sid       = "DenyInsecureTransport"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:*"
+        Resource = [
+          module.app_buckets[each.key].s3_bucket_arn,
+          "${module.app_buckets[each.key].s3_bucket_arn}/*"
+        ]
+        Condition = {
+          Bool = {
+            "aws:SecureTransport" = "false"
+          }
+        }
+      },
+      {
         Sid       = "PublicReadGetObject"
         Effect    = "Allow"
         Principal = "*"
