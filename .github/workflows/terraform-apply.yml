@@ -43,7 +43,7 @@ jobs:
 
     secrets:
       INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-      SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
+      # SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
 
   terraform-apply:
     needs: terraform-plan
@@ -73,5 +73,5 @@ jobs:
       aws_region: ${{ matrix.aws_region }}
       terraform_version: 1.14
       role_to_assume: arn:aws:iam::234617061868:role/github-actions-terraform-role
-    secrets:
-      SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
+    # secrets:
+    #   SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}

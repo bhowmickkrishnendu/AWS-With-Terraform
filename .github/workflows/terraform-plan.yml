@@ -23,9 +23,9 @@ jobs:
             component: networking
             aws_region: ap-south-1
 
-          - environment: dev
-            component: compute
-            aws_region: ap-south-1
+          # - environment: dev
+          #   component: compute
+          #   aws_region: ap-south-1
 
           - environment: dev
             component: storage
@@ -43,4 +43,4 @@ jobs:
 
     secrets:
       INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-      SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
+      # SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
