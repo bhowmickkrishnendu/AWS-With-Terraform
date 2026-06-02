@@ -14,12 +14,12 @@ output "private_ec2_private_ip" {
   value = module.instances["private_ec2"].private_ip
 }
 
-output "ec2_key_pair_name" {
-  value = aws_key_pair.ec2.key_name
+output "ec2_key_pair_names" {
+  value = { for instance_name, key_pair in aws_key_pair.ec2 : instance_name => key_pair.key_name }
 }
 
-output "ec2_private_key_secret_arn" {
-  value = aws_secretsmanager_secret.ec2_key.arn
+output "ec2_private_key_secret_arns" {
+  value = { for instance_name, secret in aws_secretsmanager_secret.ec2_key : instance_name => secret.arn }
 }
 
 /* Compatibility aliases (old names) */
