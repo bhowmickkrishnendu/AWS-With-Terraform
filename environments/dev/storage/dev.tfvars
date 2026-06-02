@@ -4,7 +4,7 @@ environment = "dev"
 
 buckets = {
   "krish-dev-app-data" = {}
-  "krish-dev-public-assets" = {
+  "krish-dev-dev-assets" = {
     # public = true
   }
 }
