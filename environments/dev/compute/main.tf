@@ -4,7 +4,7 @@ data "terraform_remote_state" "networking" {
   config = {
     bucket = "krish-terraform-state-ap-south-1"
 
-/* Compatibility outputs moved to outputs.tf */
+    /* Compatibility outputs moved to outputs.tf */
     key    = "dev/networking/terraform.tfstate"
     region = "ap-south-1"
   }
@@ -74,8 +74,8 @@ module "instances" {
   iam_instance_profile = each.value.use_iam_profile ? aws_iam_instance_profile.ec2_profile.name : null
 
   root_block_device = {
-    size = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).volume_size
-    type = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).volume_type
+    size                  = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).volume_size
+    type                  = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).volume_type
     delete_on_termination = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).delete_on_termination
   }
 
@@ -84,13 +84,13 @@ module "instances" {
     can(keys(lookup(each.value, "extra_ebs", {}))) ? lookup(each.value, "extra_ebs", {}) : (
       zipmap(
         [for idx in range(length(lookup(each.value, "extra_ebs", []))) : format("vol%02d", idx + 1)],
-        [for idx, v in zip(range(length(lookup(each.value, "extra_ebs", []))), lookup(each.value, "extra_ebs", [])) : merge(v, { device_name = coalesce(try(v.device_name, null), format("/dev/sd%s", element(["b","c","d","e","f","g","h","i","j","k","l"], idx))) })]
+        [for idx, v in zip(range(length(lookup(each.value, "extra_ebs", []))), lookup(each.value, "extra_ebs", [])) : merge(v, { device_name = coalesce(try(v.device_name, null), format("/dev/sd%s", element(["b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"], idx))) })]
       )
     )
   )
 
   # Generate user_data only when `extra_ebs` is a map with explicit device_name and mount_point.
-  user_data = can(keys(lookup(each.value, "extra_ebs", {}))) && length([for v in values(lookup(each.value, "extra_ebs", {})) : v.mount_point != null && v.mount_point != "" && v.device_name != null && v.device_name != "" ? 1 : 0]) > 0 ? join("\n", concat(["#!/bin/bash","set -e"], [for v in values(lookup(each.value, "extra_ebs", {})) : v.mount_point != null && v.mount_point != "" && v.device_name != null && v.device_name != "" ? format("if [ -b %s ]; then mkfs -t %s %s || true; mkdir -p %s; mount %s %s; echo '%s %s %s defaults,nofail 0 2' >> /etc/fstab; fi", v.device_name, coalesce(v.filesystem, "ext4"), v.device_name, v.mount_point, v.device_name, v.mount_point, v.device_name, v.mount_point, coalesce(v.filesystem, "ext4")) : ""])) : null
+  user_data = can(keys(lookup(each.value, "extra_ebs", {}))) && length([for v in values(lookup(each.value, "extra_ebs", {})) : v.mount_point != null && v.mount_point != "" && v.device_name != null && v.device_name != "" ? 1 : 0]) > 0 ? join("\n", concat(["#!/bin/bash", "set -e"], [for v in values(lookup(each.value, "extra_ebs", {})) : v.mount_point != null && v.mount_point != "" && v.device_name != null && v.device_name != "" ? format("if [ -b %s ]; then mkfs -t %s %s || true; mkdir -p %s; mount %s %s; echo '%s %s %s defaults,nofail 0 2' >> /etc/fstab; fi", v.device_name, coalesce(v.filesystem, "ext4"), v.device_name, v.mount_point, v.device_name, v.mount_point, v.device_name, v.mount_point, coalesce(v.filesystem, "ext4")) : ""])) : null
 
   tags = merge({ Name = "${var.environment}-${each.key}", Environment = var.environment }, coalesce(each.value.extra_tags, {}))
 }
