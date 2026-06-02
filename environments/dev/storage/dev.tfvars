@@ -1,5 +1,10 @@
-aws_region  = "ap-south-1"
+aws_region = "ap-south-1"
 
 environment = "dev"
 
-bucket_name = "krish-dev-app-data"
+buckets = {
+  "krish-dev-app-data" = {}
+  "krish-dev-public-assets" = {
+    public = true
+  }
+}
