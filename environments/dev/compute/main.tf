@@ -10,10 +10,23 @@ data "terraform_remote_state" "networking" {
   }
 }
 
-resource "aws_key_pair" "deployer" {
-  key_name = "${var.environment}-key"
+resource "tls_private_key" "ec2" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
 
-  public_key = var.public_key
+resource "aws_key_pair" "ec2" {
+  key_name   = "${var.environment}-key"
+  public_key = tls_private_key.ec2.public_key_openssh
+}
+
+resource "aws_secretsmanager_secret" "ec2_key" {
+  name = "${var.environment}-private-key"
+}
+
+resource "aws_secretsmanager_secret_version" "ec2_key" {
+  secret_id     = aws_secretsmanager_secret.ec2_key.id
+  secret_string = tls_private_key.ec2.private_key_pem
 }
 
 resource "aws_security_group" "bastion_sg" {
@@ -66,7 +79,7 @@ module "instances" {
 
   subnet_id = each.value.subnet_tier == "public" ? data.terraform_remote_state.networking.outputs.public_subnets[0] : data.terraform_remote_state.networking.outputs.private_subnets[0]
 
-  key_name                    = aws_key_pair.deployer.key_name
+  key_name                    = aws_key_pair.ec2.key_name
   associate_public_ip_address = each.value.associate_public_ip_address
 
   vpc_security_group_ids = each.key == "bastion" ? [aws_security_group.bastion_sg.id] : [aws_security_group.private_ec2_sg.id]

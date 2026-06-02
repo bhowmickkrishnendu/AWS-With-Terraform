@@ -14,6 +14,14 @@ output "private_ec2_private_ip" {
   value = module.instances["private_ec2"].private_ip
 }
 
+output "ec2_key_pair_name" {
+  value = aws_key_pair.ec2.key_name
+}
+
+output "ec2_private_key_secret_arn" {
+  value = aws_secretsmanager_secret.ec2_key.arn
+}
+
 /* Compatibility aliases (old names) */
 output "bastion_id" {
   description = "Compatibility: bastion id alias"
