@@ -63,6 +63,11 @@ variable "instance_definitions" {
     associate_public_ip_address = bool
     use_iam_profile             = bool
     extra_tags                  = optional(map(string))
+    # Per-instance bootstrap script. Path is relative to this module and rendered
+    # with `user_data_vars` via templatefile(). The EBS-mount script (when extra_ebs
+    # defines mount points) is prepended automatically.
+    user_data_file = optional(string)
+    user_data_vars = optional(map(string), {})
     extra_ebs = optional(map(object({
       size                  = optional(number)
       type                  = optional(string)

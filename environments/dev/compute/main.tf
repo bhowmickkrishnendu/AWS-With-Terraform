@@ -111,8 +111,9 @@ module "instances" {
     )
   )
 
-  # Generate user_data only when `extra_ebs` is a map with explicit device_name and mount_point.
-  user_data = can(keys(lookup(each.value, "extra_ebs", {}))) && length([for v in values(lookup(each.value, "extra_ebs", {})) : v.mount_point != null && v.mount_point != "" && v.device_name != null && v.device_name != "" ? 1 : 0]) > 0 ? join("\n", concat(["#!/bin/bash", "set -e"], [for v in values(lookup(each.value, "extra_ebs", {})) : v.mount_point != null && v.mount_point != "" && v.device_name != null && v.device_name != "" ? format("if [ -b %s ]; then mkfs -t %s %s || true; mkdir -p %s; mount %s %s; echo '%s %s %s defaults,nofail 0 2' >> /etc/fstab; fi", v.device_name, coalesce(v.filesystem, "ext4"), v.device_name, v.mount_point, v.device_name, v.mount_point, v.device_name, v.mount_point, coalesce(v.filesystem, "ext4")) : ""])) : null
+  # Per-instance bootstrap: auto EBS-mount script merged with the custom user_data_file.
+  # See locals.tf for how local.instance_user_data is assembled.
+  user_data = local.instance_user_data[each.key]
 
   tags = merge({ Name = "${var.environment}-${each.key}", Environment = var.environment }, coalesce(each.value.extra_tags, {}))
 }
