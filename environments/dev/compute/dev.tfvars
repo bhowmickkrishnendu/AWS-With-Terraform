@@ -17,6 +17,8 @@ instance_definitions = {
     associate_public_ip_address = true
     use_iam_profile             = true
     extra_tags                  = { Role = "bastion" }
+    user_data_file              = "scripts/bastion.sh"
+    user_data_vars              = { hostname = "dev-bastion" }
     extra_ebs = {
       data1 = {
         device_name           = "/dev/sdb"
@@ -36,6 +38,7 @@ instance_definitions = {
     associate_public_ip_address = false
     use_iam_profile             = true
     extra_tags                  = { Role = "app" }
+    user_data_file              = "scripts/private_ec2.sh"
     extra_ebs                   = {}
   }
 }
