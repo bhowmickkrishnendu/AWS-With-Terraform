@@ -20,6 +20,8 @@ on:
           - networking
           - compute
           - storage
+          - ecr
+          - eks
 
       confirm_destroy:
         description: "Type DESTROY to continue"

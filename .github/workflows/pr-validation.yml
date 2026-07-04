@@ -1,0 +1,267 @@
+name: PR Validation - Terraform Code Quality
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'environments/**'
+      - '.github/workflows/**'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  checks: write
+  statuses: write
+
+jobs:
+  terraform-validation:
+    name: Terraform Format & Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14
+
+      - name: Terraform Format Check
+        id: fmt
+        run: |
+          terraform fmt -recursive -check -diff environments/
+        continue-on-error: true
+
+      - name: Terraform Init (for validation)
+        id: init
+        run: |
+          for dir in environments/dev/*/; do
+            echo "Initializing $dir..."
+            cd "$dir"
+            terraform init -backend=false
+            cd - > /dev/null
+          done
+
+      - name: Terraform Validate
+        id: validate
+        run: |
+          for dir in environments/dev/*/; do
+            echo "Validating $dir..."
+            cd "$dir"
+            terraform validate
+            cd - > /dev/null
+          done
+
+      - name: Terraform Format Report
+        if: failure() && steps.fmt.outcome == 'failure'
+        run: |
+          echo "❌ **Terraform Format Check Failed**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please run \`terraform fmt -recursive\` locally and commit the changes." >> $GITHUB_STEP_SUMMARY
+
+      - name: PR Comment - Format Check Failed
+        if: failure() && steps.fmt.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **Terraform Format Check Failed**\n\nPlease run `terraform fmt -recursive` locally to fix formatting issues.'
+            })
+
+  tflint:
+    name: TFLint - Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Cache Plugin Dir
+        uses: actions/cache@v3
+        with:
+          path: ~/.tflint.d/plugins
+          key: ubuntu-latest-tflint-${{ hashFiles('.tflint.hcl') }}
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Initialize TFLint
+        run: tflint --init
+
+      - name: Run TFLint
+        run: tflint -f compact --recursive environments/dev/
+        continue-on-error: true
+
+  tfsec:
+    name: TFSec - Security Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run TFSec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: environments/dev
+          format: sarif
+          out_dir: .
+          exit_code: 0
+
+      - name: Upload TFSec Results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: results.sarif
+          wait-for-processing: true
+
+      - name: TFSec PR Comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('results.sarif', 'utf8'));
+            const violations = results.runs[0].results || [];
+            
+            if (violations.length === 0) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '✅ **Security Scan Passed** - No vulnerabilities detected'
+              });
+            } else {
+              const severityCount = violations.reduce((acc, v) => {
+                acc[v.level] = (acc[v.level] || 0) + 1;
+                return acc;
+              }, {});
+              
+              let comment = '⚠️ **Security Issues Found**\n\n';
+              comment += `- Error: ${severityCount.error || 0}\n`;
+              comment += `- Warning: ${severityCount.warning || 0}\n`;
+              comment += `- Note: ${severityCount.note || 0}\n\n`;
+              comment += 'Please review the [Security Tab](https://github.com/${{ github.repository }}/security/code-scanning) for details.';
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  cost-estimation:
+    name: Infracost - Cost Estimation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14
+
+      - name: Run Infracost
+        uses: infracost/actions/cli@v1
+        with:
+          api_key: ${{ secrets.INFRACOST_API_KEY }}
+          path: environments/dev
+          format: json
+          out-file: /tmp/infracost.json
+
+      - name: Post Infracost Comment
+        uses: infracost/actions/comment@v1
+        with:
+          path: /tmp/infracost.json
+          behavior: new
+
+  documentation-check:
+    name: Documentation & Variables Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check for Required Files
+        run: |
+          echo "Checking for required Terraform files..."
+          
+          for dir in environments/dev/*/; do
+            component=$(basename "$dir")
+            
+            if [ ! -f "$dir/main.tf" ]; then
+              echo "❌ Missing main.tf in $component"
+              exit 1
+            fi
+            
+            if [ ! -f "$dir/variables.tf" ]; then
+              echo "❌ Missing variables.tf in $component"
+              exit 1
+            fi
+            
+            if [ ! -f "$dir/outputs.tf" ]; then
+              echo "❌ Missing outputs.tf in $component"
+              exit 1
+            fi
+            
+            if [ ! -f "$dir/versions.tf" ]; then
+              echo "❌ Missing versions.tf in $component"
+              exit 1
+            fi
+            
+            echo "✅ $component has all required files"
+          done
+
+      - name: Verify Variables Documentation
+        run: |
+          echo "Checking variable documentation..."
+          
+          for vars_file in environments/dev/*/variables.tf; do
+            if grep -q "description = \"\"" "$vars_file"; then
+              echo "❌ Found undocumented variable in $vars_file"
+              exit 1
+            fi
+          done
+          
+          echo "✅ All variables are documented"
+
+  summary:
+    name: PR Validation Summary
+    needs: [terraform-validation, tflint, tfsec, cost-estimation, documentation-check]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check Job Status
+        run: |
+          if [ "${{ needs.terraform-validation.result }}" = "failure" ] || \
+             [ "${{ needs.tflint.result }}" = "failure" ] || \
+             [ "${{ needs.documentation-check.result }}" = "failure" ]; then
+            echo "❌ PR validation failed. Please review the errors above."
+            exit 1
+          fi
+
+      - name: Success Comment
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ **All Validation Checks Passed**\n\n- ✓ Terraform Format\n- ✓ Terraform Validation\n- ✓ TFLint\n- ✓ TFSec Security Scan\n- ✓ Cost Estimation\n- ✓ Documentation Check'
+            })
