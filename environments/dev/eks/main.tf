@@ -242,10 +242,6 @@ resource "aws_eks_node_group" "main" {
     max_unavailable = each.value.max_unavailable
   }
 
-  vpc_config {
-    security_groups = [aws_security_group.eks_node_sg.id]
-  }
-
   tags = merge(
     var.common_tags,
     each.value.tags,
