@@ -24,11 +24,11 @@ output "repositories" {
   value = {
     for key, repo in aws_ecr_repository.app :
     key => {
-      name            = repo.repository_name
-      url             = repo.repository_url
-      arn             = repo.arn
-      registry_id     = repo.registry_id
-      repository_uri  = repo.repository_url
+      name           = repo.repository_name
+      url            = repo.repository_url
+      arn            = repo.arn
+      registry_id    = repo.registry_id
+      repository_uri = repo.repository_url
     }
   }
 }

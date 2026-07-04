@@ -8,17 +8,17 @@ endpoint_private_access = true
 endpoint_public_access  = true
 public_access_cidrs     = ["0.0.0.0/0"]
 
-enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+enabled_cluster_log_types  = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 cluster_log_retention_days = 7
 
 node_groups = {
   general = {
-    desired_size   = 2
-    min_size       = 1
-    max_size       = 4
-    instance_types = ["t3.medium"]
-    disk_size      = 20
-    capacity_type  = "ON_DEMAND"
+    desired_size    = 2
+    min_size        = 1
+    max_size        = 4
+    instance_types  = ["t3.medium"]
+    disk_size       = 20
+    capacity_type   = "ON_DEMAND"
     max_unavailable = 1
     tags = {
       NodeGroup = "general"
