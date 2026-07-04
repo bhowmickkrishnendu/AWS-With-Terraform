@@ -51,14 +51,14 @@ variable "cluster_log_retention_days" {
 
 variable "node_groups" {
   type = map(object({
-    desired_size       = number
-    min_size           = number
-    max_size           = number
-    instance_types     = list(string)
-    disk_size          = optional(number, 20)
-    capacity_type      = optional(string, "ON_DEMAND")
-    max_unavailable    = optional(number, 1)
-    tags               = optional(map(string), {})
+    desired_size    = number
+    min_size        = number
+    max_size        = number
+    instance_types  = list(string)
+    disk_size       = optional(number, 20)
+    capacity_type   = optional(string, "ON_DEMAND")
+    max_unavailable = optional(number, 1)
+    tags            = optional(map(string), {})
   }))
   description = "Map of node groups to create"
 }
@@ -86,12 +86,12 @@ variable "enable_oidc_provider" {
 
 variable "cluster_addons" {
   type = map(object({
-    addon_version            = optional(string)
+    addon_version               = optional(string)
     resolve_conflicts_on_update = optional(string, "OVERWRITE")
     resolve_conflicts_on_create = optional(string, "OVERWRITE")
-    preserve                 = optional(bool, false)
-    service_account_role_arn = optional(string)
-    tags                     = optional(map(string), {})
+    preserve                    = optional(bool, false)
+    service_account_role_arn    = optional(string)
+    tags                        = optional(map(string), {})
   }))
   default     = {}
   description = "Map of EKS add-ons to enable (e.g., coredns, kube-proxy, vpc-cni, ebs-csi-driver)"

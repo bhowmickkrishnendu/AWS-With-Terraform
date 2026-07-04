@@ -48,10 +48,10 @@ output "node_groups" {
   value = {
     for key, ng in aws_eks_node_group.main :
     key => {
-      id           = ng.id
-      arn          = ng.arn
-      status       = ng.status
-      capacity_type = ng.capacity_type
+      id             = ng.id
+      arn            = ng.arn
+      status         = ng.status
+      capacity_type  = ng.capacity_type
       instance_types = ng.instance_types
       scaling_config = ng.scaling_config
     }
