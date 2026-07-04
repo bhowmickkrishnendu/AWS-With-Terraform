@@ -53,9 +53,16 @@ jobs:
       INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
       # SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
 
-  terraform-apply:
+  approval:
     needs: terraform-plan
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Approval gate
+        run: echo "Deployment approved and proceeding to apply"
 
+  terraform-apply:
+    needs: approval
     strategy:
       fail-fast: false
 
