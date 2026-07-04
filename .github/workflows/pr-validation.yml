@@ -112,12 +112,12 @@ jobs:
         with:
           working_directory: environments/dev
           format: sarif
-          out_dir: ${{ github.workspace }}
-          exit_code: 0
+          additional_args: --out=${{ github.workspace }}/results.sarif
+          soft_fail: true
 
       - name: Upload TFSec Results
         uses: github/codeql-action/upload-sarif@v3
-        if: always() && hashFiles('results.sarif') != ''
+        if: hashFiles('results.sarif') != ''
         with:
           sarif_file: ${{ github.workspace }}/results.sarif
           wait-for-processing: true
