@@ -33,27 +33,6 @@ variable "root_delete_on_termination" {
   default = true
 }
 
-variable "instance_root_volumes" {
-  type = map(object({
-    volume_size           = number
-    volume_type           = string
-    delete_on_termination = bool
-  }))
-
-  default = {
-    bastion = {
-      volume_size           = 20
-      volume_type           = "gp3"
-      delete_on_termination = true
-    }
-
-    private_ec2 = {
-      volume_size           = 20
-      volume_type           = "gp3"
-      delete_on_termination = true
-    }
-  }
-}
 
 variable "instance_definitions" {
   type = map(object({
@@ -63,6 +42,20 @@ variable "instance_definitions" {
     associate_public_ip_address = bool
     use_iam_profile             = bool
     extra_tags                  = optional(map(string))
+
+    # Optional per-instance root volume overrides. Any unset field falls back to
+    # the corresponding global default (root_volume_size / root_volume_type /
+    # root_delete_on_termination). Set root_volume = null to use all global defaults.
+    root_volume = optional(object({
+      size                  = optional(number)
+      type                  = optional(string)
+      delete_on_termination = optional(bool)
+      encrypted             = optional(bool)
+      kms_key_id            = optional(string)
+      iops                  = optional(number) # gp3 min 3000; io1/io2 required
+      throughput            = optional(number) # gp3 only (MiB/s)
+    }))
+
     # Per-instance bootstrap script. Path is relative to this module and rendered
     # with `user_data_vars` via templatefile(). The EBS-mount script (when extra_ebs
     # defines mount points) is prepended automatically.
@@ -95,6 +88,7 @@ variable "instance_definitions" {
       associate_public_ip_address = true
       use_iam_profile             = true
       extra_tags                  = {}
+      root_volume                 = null # uses global defaults
       extra_ebs                   = {}
     }
 
@@ -105,6 +99,7 @@ variable "instance_definitions" {
       associate_public_ip_address = false
       use_iam_profile             = true
       extra_tags                  = {}
+      root_volume                 = null # uses global defaults
       extra_ebs                   = {}
     }
   }
