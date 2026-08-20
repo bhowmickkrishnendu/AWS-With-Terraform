@@ -19,26 +19,26 @@ instance_definitions = {
     extra_tags                  = { Role = "bastion" }
     user_data_file              = "scripts/bastion.sh"
     user_data_vars              = { hostname = "dev-bastion" }
-    extra_ebs = {
-      data1 = {
-        device_name           = "/dev/sdb"
-        size                  = 50
-        type                  = "gp3"
-        encrypted             = false
-        filesystem            = "xfs"
-        mount_point           = "/data"
-        delete_on_termination = true
-      }
-    }
+    # extra_ebs = {
+    #   data1 = {
+    #     device_name           = "/dev/sdb"
+    #     size                  = 50
+    #     type                  = "gp3"
+    #     encrypted             = false
+    #     filesystem            = "xfs"
+    #     mount_point           = "/data"
+    #     delete_on_termination = true
+    #   }
+    # }
   }
 
-  private_ec2 = {
-    instance_type               = "t3.medium"
-    subnet_tier                 = "private"
-    associate_public_ip_address = false
-    use_iam_profile             = true
-    extra_tags                  = { Role = "app" }
-    user_data_file              = "scripts/private_ec2.sh"
-    extra_ebs                   = {}
-  }
+  # private_ec2 = {
+  #   instance_type               = "t3.medium"
+  #   subnet_tier                 = "private"
+  #   associate_public_ip_address = false
+  #   use_iam_profile             = true
+  #   extra_tags                  = { Role = "app" }
+  #   user_data_file              = "scripts/private_ec2.sh"
+  #   extra_ebs                   = {}
+  # }
 }
