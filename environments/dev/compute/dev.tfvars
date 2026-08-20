@@ -29,7 +29,7 @@ instance_definitions = {
     #     mount_point           = "/data"
     #     delete_on_termination = true
     #   }
-    }
+    # }
   }
 
   # private_ec2 = {
