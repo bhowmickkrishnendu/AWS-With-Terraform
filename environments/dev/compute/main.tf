@@ -95,11 +95,17 @@ module "instances" {
 
   iam_instance_profile = each.value.use_iam_profile ? aws_iam_instance_profile.ec2_profile.name : null
 
-  root_block_device = {
-    size                  = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).volume_size
-    type                  = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).volume_type
-    delete_on_termination = lookup(var.instance_root_volumes, each.key, { volume_size = var.root_volume_size, volume_type = var.root_volume_type, delete_on_termination = var.root_delete_on_termination }).delete_on_termination
-  }
+  # Root volume: per-instance overrides take precedence; unset fields fall back
+  # to the global defaults (root_volume_size / root_volume_type / root_delete_on_termination).
+  root_block_device = [{
+    size                  = coalesce(try(each.value.root_volume.size, null), var.root_volume_size)
+    type                  = coalesce(try(each.value.root_volume.type, null), var.root_volume_type)
+    delete_on_termination = coalesce(try(each.value.root_volume.delete_on_termination, null), var.root_delete_on_termination)
+    encrypted             = try(each.value.root_volume.encrypted, null)
+    kms_key_id            = try(each.value.root_volume.kms_key_id, null)
+    iops                  = try(each.value.root_volume.iops, null)
+    throughput            = try(each.value.root_volume.throughput, null)
+  }]
 
   # Accept either a map (preferred) or a list for `extra_ebs` and convert lists to a map with generated keys and default device names.
   ebs_volumes = lookup(each.value, "extra_ebs", null) == null ? null : (
