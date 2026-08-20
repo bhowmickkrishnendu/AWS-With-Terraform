@@ -27,17 +27,17 @@ jobs:
             component: compute
             aws_region: ap-south-1
 
-          - environment: dev
-            component: storage
-            aws_region: ap-south-1
+          # - environment: dev
+          #   component: storage
+          #   aws_region: ap-south-1
 
-          - environment: dev
-            component: ecr
-            aws_region: ap-south-1
+          # - environment: dev
+          #   component: ecr
+          #   aws_region: ap-south-1
 
-          - environment: dev
-            component: eks
-            aws_region: ap-south-1
+          # - environment: dev
+          #   component: eks
+          #   aws_region: ap-south-1
 
     uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@main
 
