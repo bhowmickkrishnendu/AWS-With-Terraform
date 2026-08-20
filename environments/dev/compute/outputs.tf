@@ -7,11 +7,11 @@ output "bastion_instance_id" {
 }
 
 output "private_ec2_instance_id" {
-  value = module.instances["private_ec2"].id
+  value = try(module.instances["private_ec2"].id, null)
 }
 
 output "private_ec2_private_ip" {
-  value = module.instances["private_ec2"].private_ip
+  value = try(module.instances["private_ec2"].private_ip, null)
 }
 
 output "ec2_key_pair_names" {
