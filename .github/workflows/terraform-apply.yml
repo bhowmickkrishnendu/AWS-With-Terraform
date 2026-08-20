@@ -12,32 +12,30 @@ permissions:
   pull-requests: write
 
 jobs:
-  terraform-plan:
+  # ── Single source of truth for the component matrix ──────────────────────────
+  matrix-config:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Define component matrix
+        id: set-matrix
+        run: |
+          echo 'matrix={"include":[
+            {"environment":"dev","component":"networking","aws_region":"ap-south-1"},
+            {"environment":"dev","component":"compute","aws_region":"ap-south-1"}
+          ]}' >> "$GITHUB_OUTPUT"
+          # To add more components, append entries above, e.g.:
+          # {"environment":"dev","component":"storage","aws_region":"ap-south-1"},
+          # {"environment":"dev","component":"ecr","aws_region":"ap-south-1"},
+          # {"environment":"dev","component":"eks","aws_region":"ap-south-1"}
 
+  # ── Plan all components (uses matrix from matrix-config) ──────────────────────
+  terraform-plan:
+    needs: matrix-config
     strategy:
       fail-fast: false
-
-      matrix:
-        include:
-          - environment: dev
-            component: networking
-            aws_region: ap-south-1
-
-          - environment: dev
-            component: compute
-            aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: storage
-          #   aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: ecr
-          #   aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: eks
-          #   aws_region: ap-south-1
+      matrix: ${{ fromJson(needs.matrix-config.outputs.matrix) }}
 
     uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@main
 
@@ -53,6 +51,7 @@ jobs:
       INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
       # SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
 
+  # ── Manual approval gate ──────────────────────────────────────────────────────
   approval:
     needs: terraform-plan
     runs-on: ubuntu-latest
@@ -61,32 +60,12 @@ jobs:
       - name: Approval gate
         run: echo "Deployment approved and proceeding to apply"
 
+  # ── Apply all components (reuses the same matrix from matrix-config) ──────────
   terraform-apply:
-    needs: approval
+    needs: [matrix-config, approval]
     strategy:
       fail-fast: false
-
-      matrix:
-        include:
-          - environment: dev
-            component: networking
-            aws_region: ap-south-1
-
-          - environment: dev
-            component: compute
-            aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: storage
-          #   aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: ecr
-          #   aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: eks
-          #   aws_region: ap-south-1
+      matrix: ${{ fromJson(needs.matrix-config.outputs.matrix) }}
 
     uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@main
 

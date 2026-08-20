@@ -1,0 +1,102 @@
+name: Terraform Force Unlock State
+
+# Emergency escape hatch for stale DynamoDB state locks.
+# Only use when a previous run crashed mid-execution and left an orphaned lock.
+# The Lock ID MUST be copied from the error output of the failed workflow run.
+# DO NOT use this while another plan/apply is actively running on the same component.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment (must match the locked component)"
+        required: true
+        type: choice
+        options:
+          - dev
+          # - uat
+          # - prod
+
+      component:
+        description: "Component with the stale lock"
+        required: true
+        type: choice
+        options:
+          - networking
+          - compute
+          - storage
+          - ecr
+          - eks
+
+      aws_region:
+        description: "AWS Region"
+        required: true
+        default: "ap-south-1"
+
+      lock_id:
+        description: "Lock ID — paste exactly from the failed run log (UUID format)"
+        required: true
+
+      confirm:
+        description: "Type UNLOCK to confirm you have verified no active run holds this lock"
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  force-unlock:
+    name: Force Unlock – ${{ github.event.inputs.environment }}/${{ github.event.inputs.component }}
+    runs-on: ubuntu-latest
+
+    # Guard: this job itself acquires the same concurrency slot so it cannot
+    # race with a legitimately queued plan or apply on this component.
+    concurrency:
+      group: terraform-apply-${{ github.event.inputs.environment }}-${{ github.event.inputs.component }}
+      cancel-in-progress: false
+
+    environment:
+      name: production   # Requires a reviewer approval before this job runs
+
+    steps:
+      - name: Validate confirmation token
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "UNLOCK" ]; then
+            echo "::error::You must type exactly UNLOCK in the confirm field."
+            exit 1
+          fi
+
+      - name: Validate Lock ID format
+        run: |
+          LOCK_ID="${{ github.event.inputs.lock_id }}"
+          if ! echo "$LOCK_ID" | grep -qP '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'; then
+            echo "::error::Lock ID does not look like a valid UUID: $LOCK_ID"
+            echo "::error::Copy it exactly from the 'ID:' field in the failed run log."
+            exit 1
+          fi
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::234617061868:role/github-actions-terraform-role
+          aws-region: ${{ github.event.inputs.aws_region }}
+
+      - name: Terraform Init
+        working-directory: environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.component }}
+        run: terraform init -input=false
+
+      - name: Force Unlock
+        working-directory: environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.component }}
+        run: |
+          echo "Releasing lock ${{ github.event.inputs.lock_id }} on ${{ github.event.inputs.environment }}/${{ github.event.inputs.component }}"
+          terraform force-unlock -force "${{ github.event.inputs.lock_id }}"
+          echo "::notice::Lock released. You can now re-run the failed plan/apply."
