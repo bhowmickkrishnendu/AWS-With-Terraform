@@ -28,7 +28,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.14
+          terraform_version: 1.14.2
 
       - name: Terraform Format Check
         id: fmt
@@ -42,7 +42,7 @@ jobs:
           for dir in environments/dev/*/; do
             echo "Initializing $dir..."
             cd "$dir"
-            terraform init -backend=false
+            terraform init -backend=false -lockfile=readonly -input=false
             cd - > /dev/null
           done
 
@@ -178,7 +178,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.14
+          terraform_version: 1.14.2
 
       - name: Setup Infracost
         uses: infracost/actions/setup@v3

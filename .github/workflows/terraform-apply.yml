@@ -39,13 +39,13 @@ jobs:
           #   component: eks
           #   aws_region: ap-south-1
 
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@main
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@5c384e29866d4f2d647536b86e64ea2b17dfb018
 
     with:
       environment: ${{ matrix.environment }}
       component: ${{ matrix.component }}
       aws_region: ${{ matrix.aws_region }}
-      terraform_version: 1.14
+      terraform_version: 1.14.2
       tfvars_file: ${{ matrix.environment }}.tfvars
       role_to_assume: arn:aws:iam::234617061868:role/github-actions-terraform-role
 
@@ -88,13 +88,13 @@ jobs:
           #   component: eks
           #   aws_region: ap-south-1
 
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@main
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@5c384e29866d4f2d647536b86e64ea2b17dfb018
 
     with:
       environment: ${{ matrix.environment }}
       component: ${{ matrix.component }}
       aws_region: ${{ matrix.aws_region }}
-      terraform_version: 1.14
+      terraform_version: 1.14.2
       role_to_assume: arn:aws:iam::234617061868:role/github-actions-terraform-role
     # secrets:
     #   SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
