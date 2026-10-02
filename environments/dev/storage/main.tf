@@ -9,7 +9,7 @@ module "app_buckets" {
   for_each = var.buckets
 
   source  = "terraform-aws-modules/s3-bucket/aws"
-  version = "~> 5.0"
+  version = "5.16.1"
 
   bucket = each.key
 
