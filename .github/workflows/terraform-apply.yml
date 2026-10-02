@@ -47,7 +47,7 @@ jobs:
       aws_region: ${{ matrix.aws_region }}
       terraform_version: 1.14.2
       tfvars_file: ${{ matrix.environment }}.tfvars
-      role_to_assume: arn:aws:iam::234617061868:role/github-actions-terraform-role
+      role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
 
     secrets:
       INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
@@ -95,6 +95,6 @@ jobs:
       component: ${{ matrix.component }}
       aws_region: ${{ matrix.aws_region }}
       terraform_version: 1.14.2
-      role_to_assume: arn:aws:iam::234617061868:role/github-actions-terraform-role
+      role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
     # secrets:
     #   SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}

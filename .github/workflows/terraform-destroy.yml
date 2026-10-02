@@ -41,6 +41,6 @@ jobs:
       aws_region: ap-south-1
       tfvars_file: ${{ github.event.inputs.environment }}.tfvars
       confirm_destroy: ${{ github.event.inputs.confirm_destroy }}
-      role_to_assume: arn:aws:iam::234617061868:role/github-actions-terraform-role
+      role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
     # secrets:
     #   SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
