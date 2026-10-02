@@ -1,9 +1,11 @@
 variable "aws_region" {
-  type = string
+  description = "AWS region for the storage stack."
+  type        = string
 }
 
 variable "environment" {
-  type = string
+  description = "Existing state namespace and resource name prefix. Keep dev for the deployed stack."
+  type        = string
 }
 
 variable "buckets" {

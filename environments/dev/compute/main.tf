@@ -79,7 +79,7 @@ resource "aws_security_group" "bastion_sg" {
 
 module "instances" {
   source  = "terraform-aws-modules/ec2-instance/aws"
-  version = "~> 6.0"
+  version = "6.4.0"
 
   for_each = var.instance_definitions
 
