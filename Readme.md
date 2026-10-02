@@ -28,11 +28,11 @@ The Phase 0, Phase 1, and Phase 2 working records and inventory scripts are kept
 | `environments/dev/ecr` | Container image repositories and retention rules | Code exists; no state object in the last inventory |
 | `environments/dev/eks` | Cluster, node group, IAM, OIDC, and add-ons | Code exists; needs network output fixes before deployment |
 
-The bootstrap, networking, compute, and storage roots each had a zero-change plan during the foundation review. Compute and storage also showed drift notices. With current Phase 2 values, networking still has a zero-change plan and compute proposes one bastion security-group update to limit SSH to the VPC public subnet. The running EC2 is not proposed for replacement. A plan at one point in time does not replace a new plan before the next apply. Networking comes before compute because compute reads networking outputs from remote state. The automatic GitHub plan and apply matrices currently include networking and compute only.
+The bootstrap, networking, compute, and storage roots each had a zero-change plan during the foundation review. Compute and storage also showed drift notices. Phase 2 now defines each VM's security group and IAM settings in its VM block while keeping direct SSH to the public bastion. The current network values leave NAT and the S3 gateway endpoint disabled. Review a fresh compute plan before any apply because the refactor moves state addresses and removes the EC2 module's extra security group. Networking comes before compute because compute reads networking outputs from remote state. The automatic GitHub plan and apply matrices currently include networking and compute only.
 
 ## Work locally
 
-Install Terraform `1.14.2` and AWS CLI. Authenticate to the intended account; on the my laptop the AWS CLI profile is `terraform-dev`. Provider configuration uses the normal AWS credential chain, so a different trusted profile or role can be used without editing Terraform files.
+Install Terraform `1.14.2` and AWS CLI. Authenticate to the intended account. The local AWS CLI profile used for the checks is `terraform-dev`. Provider configuration uses the normal AWS credential chain, so a different trusted profile or role can be used without editing Terraform files.
 
 From PowerShell in the repository root, check identity and run a read-only plan for one component:
 
@@ -50,6 +50,6 @@ The state bucket manages its own imported state through a separate S3 key. Its b
 
 ## Delivery and next work
 
-The caller workflows pin a commit of the shared `terraform-gha-workflows` repository. Pull requests start plan jobs; pushes to `main` or `master` can reach the apply path after its GitHub environment job. A separate manual workflow can destroy a selected component. GitHub environment rules and actual run results need to be checked in GitHub, and the pipeline still has ordering and artifact-handling gaps described in [pipeline.md](docs/pipeline.md).
+The caller workflows pin a commit of the shared `terraform-gha-workflows` repository. Set the repository Actions variable `AWS_TERRAFORM_ROLE_ARN` to the full GitHub OIDC role ARN for your account before using them. Pull requests start plan jobs; pushes to `main` or `master` can reach the apply path after its GitHub environment job. A separate manual workflow can destroy a selected component. GitHub environment rules and actual run results need to be checked in GitHub, and the pipeline still has ordering and artifact-handling gaps described in [pipeline.md](docs/pipeline.md).
 
 Current code is a base for the larger goal, not a claim that every planned AWS service is already integrated. EKS output references need correction, and private network egress is still disabled by the current Phase 2 values. IAM Identity Center, RDS, Lambda, SNS, and other planned services need their own reviewed roots or modules. Make each change in a small step, compare its plan with live state, and keep the running bastion and current state addresses intact.

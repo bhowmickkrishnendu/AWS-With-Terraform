@@ -41,6 +41,6 @@ terraform -chdir=infrastructure/00-backend state list
 terraform -chdir=infrastructure/00-backend plan -input=false
 ```
 
-The expected account is `234617061868`. The state list should have the five resources in the table above. If the plan proposes creating the bucket or changing its protection settings, stop and check the backend key, AWS identity, state version, and live settings before doing anything else. Do not run `init -migrate-state` again as a routine initialization step.
+The expected account is the one that owns the state bucket. The state list should have the five resources in the table above. If the plan proposes creating the bucket or changing its protection settings, stop and check the backend key, AWS identity, state version, and live settings before doing anything else. Do not run `init -migrate-state` again as a routine initialization step.
 
 For the wider root layout, see [architecture.md](architecture.md). For the bucket used by applications, see [storage.md](storage.md).
