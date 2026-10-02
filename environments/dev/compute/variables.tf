@@ -1,40 +1,49 @@
 variable "aws_region" {
-  type = string
+  description = "AWS region for the compute stack."
+  type        = string
 }
 
 variable "environment" {
-  type = string
+  description = "Existing state namespace and resource name prefix. Keep dev for the deployed stack."
+  type        = string
 }
 
 variable "instance_type" {
-  type = string
+  description = "Default EC2 instance type when an instance definition omits one."
+  type        = string
 }
 
 variable "bastion_ssh_cidr" {
-  type = string
+  description = "IPv4 CIDR permitted to reach the bastion over SSH."
+  type        = string
 }
 
 variable "ami_id" {
-  type = string
+  description = "Default AMI ID when an instance definition omits one."
+  type        = string
 }
 
 variable "root_volume_size" {
-  type    = number
-  default = 20
+  description = "Default root EBS volume size in GiB."
+  type        = number
+  default     = 20
 }
 
 variable "root_volume_type" {
-  type    = string
-  default = "gp3"
+  description = "Default root EBS volume type."
+  type        = string
+  default     = "gp3"
 }
 
 variable "root_delete_on_termination" {
-  type    = bool
-  default = true
+  description = "Default behavior for deleting the root volume when its instance terminates."
+  type        = bool
+  default     = true
 }
 
 
 variable "instance_definitions" {
+  description = "EC2 instances keyed by stable Terraform for_each names; changing a key changes its resource address."
   type = map(object({
     ami                         = optional(string)
     instance_type               = optional(string)
