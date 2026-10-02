@@ -1,15 +1,14 @@
 variable "environment" {
-  type = string
+  description = "Existing state namespace and resource name prefix. Keep dev for the deployed stack."
+  type        = string
 }
 
 variable "aws_region" {
-  type = string
+  description = "AWS region for the networking stack."
+  type        = string
 }
 
-# variable "aws_profile" {
-#   type = string
-# }
-
 variable "vpc_cidr" {
-  type = string
+  description = "IPv4 CIDR block of the VPC."
+  type        = string
 }
