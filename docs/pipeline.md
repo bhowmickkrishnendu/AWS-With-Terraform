@@ -17,7 +17,7 @@ The plan and apply matrices run component jobs independently. There is no explic
 
 ## Plan and apply path
 
-The shared plan job checks out the caller repository, installs the requested Terraform version, obtains AWS credentials through GitHub OIDC, and prints the AWS identity. It runs format, `terraform init`, validation, TFLint, and tfsec. It then writes a binary `tfplan` with `dev.tfvars`, uploads it as an artifact named for the environment and component, and runs Infracost. The caller supplies Terraform `1.14.2`, `ap-south-1`, and `arn:aws:iam::234617061868:role/github-actions-terraform-role`.
+The shared plan job checks out the caller repository, installs the requested Terraform version, obtains AWS credentials through GitHub OIDC, and prints the AWS identity. It runs format, `terraform init`, validation, TFLint, and tfsec. It then writes a binary `tfplan` with `dev.tfvars`, uploads it as an artifact named for the environment and component, and runs Infracost. The caller supplies Terraform `1.14.2`, `ap-south-1`, and the repository variable `AWS_TERRAFORM_ROLE_ARN`. Set that variable to the full ARN of the GitHub OIDC role in the intended AWS account before running plan, apply, or destroy.
 
 The shared plan workflow declares `INFRACOST_API_KEY` as a required secret. Its TFLint command has `continue-on-error: true`, so lint findings do not stop that job. The tfsec step is configured with `soft_fail: false`. These are different behaviors, so do not read a green plan job as proof that every quality check was a gate.
 
@@ -33,7 +33,7 @@ The manual destroy caller accepts a component name and requires the text `DESTRO
 
 ## A practical review before merging
 
-1. Confirm the plan job used account `234617061868` and region `ap-south-1`.
+1. Confirm the plan job used the intended AWS account and region `ap-south-1`.
 2. Read proposed creates, updates, deletes, and replacements for each affected root. Check networking before compute when both change.
 3. Check that the state key and `for_each` keys have not changed by accident.
 4. Treat the saved plan artifact and logs as sensitive, especially for compute.
