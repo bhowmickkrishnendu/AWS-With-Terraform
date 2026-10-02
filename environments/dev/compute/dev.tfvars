@@ -1,72 +1,58 @@
 aws_region  = "ap-south-1"
 environment = "dev"
 
-instance_type = "t2.small"
-
-ami_id = "ami-09ed39e30153c3bf9"
-
-bastion_ssh_cidr = "10.0.1.0/24"
-
-# Global root volume defaults (apply to any instance that does not set root_volume).
-# These can be overridden per-instance using the root_volume block shown below.
 root_volume_size           = 20
 root_volume_type           = "gp3"
 root_delete_on_termination = true
 
-
-# Example dynamic instance definitions (uncomment and edit as needed)
 instance_definitions = {
   bastion = {
     ami                         = "ami-0ac7b260cf76d8865"
     instance_type               = "t3.small"
     subnet_tier                 = "public"
+    availability_zone           = "ap-south-1a"
     associate_public_ip_address = true
-    use_iam_profile             = true
     extra_tags                  = { Role = "bastion" }
     user_data_file              = "scripts/bastion.sh"
     user_data_vars              = { hostname = "dev-bastion" }
 
-    # --- Root volume override (optional) -----------------------------------
-    # Uncomment and adjust any field; omitted fields fall back to the globals above.
-    # root_volume = {
-    #   size                  = 30     # GiB -- override the global 20 GiB
-    #   type                  = "gp3" # gp2 | gp3 | io1 | io2 | sc1 | st1
-    #   delete_on_termination = true
-    #   encrypted             = true   # encrypt with the default AWS-managed key
-    #   kms_key_id            = null   # ARN/alias of a CMK (leave null for AWS-managed)
-    #   iops                  = 3000  # gp3: 3000-16000; io1/io2: 100-64000
-    #   throughput            = 125   # gp3 only (MiB/s, 125-1000)
-    # }
-    # -----------------------------------------------------------------------
+    # The internet gateway makes the public IP reachable. This rule opens SSH
+    # from any IPv4 address. Replace with your trusted public /32 when possible.
+    security_group = {
+      description = "Security group for bastion host"
+      ingress = {
+        ssh = { description = "SSH Access", from_port = 22, to_port = 22, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
+      }
+      egress = {
+        ssh   = { description = "SSH to private EC2 within the VPC", from_port = 22, to_port = 22, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
+        https = { description = "HTTPS access for package updates and SSM", from_port = 443, to_port = 443, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
+      }
+    }
 
-    # extra_ebs = {
-    #   data1 = {
-    #     device_name           = "/dev/sdb"
-    #     size                  = 50
-    #     type                  = "gp3"
-    #     encrypted             = false
-    #     filesystem            = "xfs"
-    #     mount_point           = "/data"
-    #     delete_on_termination = true
-    #   }
-    # }
+    # Kept with its deployed names to avoid replacing the role or profile.
+    iam = {
+      role_name    = "dev-ec2-ssm-role"
+      profile_name = "dev-ec2-profile"
+      managed_policy_arns = {
+        ssm_core = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      }
+    }
   }
 
-  # private_ec2 = {
-  #   instance_type               = "t3.medium"
-  #   subnet_tier                 = "private"
-  #   associate_public_ip_address = false
-  #   use_iam_profile             = true
-  #   extra_tags                  = { Role = "app" }
-  #   user_data_file              = "scripts/private_ec2.sh"
-  #
-  #   # --- Root volume override (optional) ---------------------------------
-  #   # root_volume = {
-  #   #   size      = 50
-  #   #   encrypted = true
-  #   # }
-  #   # ---------------------------------------------------------------------
-  #
-  #   extra_ebs = {}
-  # }
+  # This group exists in state, but no private VM is deployed. Keep it until
+  # the private VM is needed so the SG is not destroyed by this refactor.
+  private_ec2 = {
+    enabled                     = false
+    subnet_tier                 = "private"
+    associate_public_ip_address = false
+    security_group = {
+      description = "Security group for private EC2"
+      ingress = {
+        ssh_from_bastion = { description = "SSH from bastion", from_port = 22, to_port = 22, protocol = "tcp", source_vm = "bastion" }
+      }
+      egress = {
+        https = { description = "HTTPS access for SSM and package updates", from_port = 443, to_port = 443, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
+      }
+    }
+  }
 }
