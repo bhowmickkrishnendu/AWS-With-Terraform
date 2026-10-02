@@ -1,0 +1,50 @@
+device="${device_name}"
+mount_point="${mount_point}"
+requested_fs="${filesystem}"
+
+# EBS attachments can appear after cloud-init starts. Fail clearly if this
+# device never appears, rather than silently skipping the mount.
+for attempt in $(seq 1 30); do
+  if [ -b "$device" ]; then
+    break
+  fi
+  sleep 2
+done
+
+if [ ! -b "$device" ]; then
+  echo "EBS device $device was not found" >&2
+  exit 1
+fi
+
+existing_fs="$(blkid -o value -s TYPE "$device" 2>/dev/null || true)"
+if [ -z "$existing_fs" ]; then
+  mkfs -t "$requested_fs" "$device"
+  existing_fs="$(blkid -o value -s TYPE "$device")"
+fi
+
+filesystem_uuid="$(blkid -o value -s UUID "$device")"
+if [ -z "$filesystem_uuid" ]; then
+  echo "EBS device $device has no filesystem UUID" >&2
+  exit 1
+fi
+
+mkdir -p "$mount_point"
+fstab_line="UUID=$filesystem_uuid $mount_point $existing_fs defaults,nofail 0 2"
+current_fstab_line="$(awk -v target="$mount_point" '$2 == target { print; exit }' /etc/fstab)"
+if [ -n "$current_fstab_line" ] && [ "$current_fstab_line" != "$fstab_line" ]; then
+  echo "Mount point $mount_point already has a different /etc/fstab entry" >&2
+  exit 1
+fi
+if ! grep -Fqx "$fstab_line" /etc/fstab; then
+  printf '%s\n' "$fstab_line" >> /etc/fstab
+fi
+
+if mountpoint -q "$mount_point"; then
+  mounted_uuid="$(findmnt -n -o UUID --target "$mount_point")"
+  if [ "$mounted_uuid" != "$filesystem_uuid" ]; then
+    echo "Mount point $mount_point is in use by another filesystem" >&2
+    exit 1
+  fi
+else
+  mount "$mount_point"
+fi

@@ -16,6 +16,11 @@ variable "instance_type" {
 variable "bastion_ssh_cidr" {
   description = "IPv4 CIDR permitted to reach the bastion over SSH."
   type        = string
+
+  validation {
+    condition     = can(cidrnetmask(var.bastion_ssh_cidr))
+    error_message = "bastion_ssh_cidr must be a valid IPv4 CIDR."
+  }
 }
 
 variable "ami_id" {
@@ -48,6 +53,7 @@ variable "instance_definitions" {
     ami                         = optional(string)
     instance_type               = optional(string)
     subnet_tier                 = string
+    subnet_index                = optional(number, 0)
     associate_public_ip_address = bool
     use_iam_profile             = bool
     extra_tags                  = optional(map(string))
@@ -111,5 +117,15 @@ variable "instance_definitions" {
       root_volume                 = null # uses global defaults
       extra_ebs                   = {}
     }
+  }
+
+  validation {
+    condition = alltrue([
+      for instance in values(var.instance_definitions) :
+      contains(["public", "private"], instance.subnet_tier) &&
+      instance.subnet_index >= 0 && floor(instance.subnet_index) == instance.subnet_index &&
+      (instance.subnet_tier == "public" || !instance.associate_public_ip_address)
+    ])
+    error_message = "Each instance needs a public or private subnet tier, a nonnegative whole subnet index, and no public IP in a private subnet."
   }
 }

@@ -5,7 +5,7 @@ instance_type = "t2.small"
 
 ami_id = "ami-09ed39e30153c3bf9"
 
-bastion_ssh_cidr = "10.0.0.0/16"
+bastion_ssh_cidr = "10.0.1.0/24"
 
 # Global root volume defaults (apply to any instance that does not set root_volume).
 # These can be overridden per-instance using the root_volume block shown below.

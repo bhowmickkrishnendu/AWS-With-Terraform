@@ -49,7 +49,7 @@ resource "aws_security_group" "bastion_sg" {
     to_port     = 22
     protocol    = "tcp"
 
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.bastion_ssh_cidr]
   }
 
   egress {
@@ -86,7 +86,7 @@ module "instances" {
   ami           = coalesce(each.value.ami, var.ami_id)
   instance_type = coalesce(each.value.instance_type, var.instance_type)
 
-  subnet_id = each.value.subnet_tier == "public" ? data.terraform_remote_state.networking.outputs.public_subnets[0] : data.terraform_remote_state.networking.outputs.private_subnets[0]
+  subnet_id = each.value.subnet_tier == "public" ? data.terraform_remote_state.networking.outputs.public_subnets[each.value.subnet_index] : data.terraform_remote_state.networking.outputs.private_subnets[each.value.subnet_index]
 
   key_name                    = aws_key_pair.ec2[each.key].key_name
   associate_public_ip_address = each.value.associate_public_ip_address
@@ -107,15 +107,7 @@ module "instances" {
     throughput            = try(each.value.root_volume.throughput, null)
   }
 
-  # Accept either a map (preferred) or a list for `extra_ebs` and convert lists to a map with generated keys and default device names.
-  ebs_volumes = lookup(each.value, "extra_ebs", null) == null ? null : (
-    can(keys(lookup(each.value, "extra_ebs", {}))) ? lookup(each.value, "extra_ebs", {}) : (
-      zipmap(
-        [for idx in range(length(lookup(each.value, "extra_ebs", []))) : format("vol%02d", idx + 1)],
-        [for idx, v in zip(range(length(lookup(each.value, "extra_ebs", []))), lookup(each.value, "extra_ebs", [])) : merge(v, { device_name = coalesce(try(v.device_name, null), format("/dev/sd%s", element(["b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"], idx))) })]
-      )
-    )
-  )
+  ebs_volumes = each.value.extra_ebs
 
   # Per-instance bootstrap: auto EBS-mount script merged with the custom user_data_file.
   # See locals.tf for how local.instance_user_data is assembled.

@@ -15,20 +15,20 @@ The old backup folder contains earlier examples and is not part of the active de
 | [Storage](docs/storage.md) | Application buckets, encryption, versioning, and public access choices |
 | [Pipeline](docs/pipeline.md) | GitHub Actions triggers, shared workflows, plan artifacts, approval path, and gaps |
 
-The Phase 0 and Phase 1 working records and inventory scripts are kept locally by the maintainer and ignored by Git.
+The Phase 0, Phase 1, and Phase 2 working records and inventory scripts are kept locally by the maintainer and ignored by Git.
 
 ## What exists today
 
 | Terraform root | Purpose | Current position |
 | --- | --- | --- |
 | `infrastructure/00-backend` | S3 state bucket, encryption, versioning, public access block, lifecycle | Existing resources imported; state at `bootstrap/terraform.tfstate` |
-| `environments/dev/networking` | VPC with public and private subnets in two availability zones | Deployed |
+| `environments/dev/networking` | VPC with public and private subnets in two availability zones | Deployed; optional NAT and VPC endpoints remain disabled |
 | `environments/dev/compute` | Bastion EC2, security groups, IAM instance profile, SSH key secret | Bastion deployed |
 | `environments/dev/storage` | Two application S3 buckets | Deployed |
 | `environments/dev/ecr` | Container image repositories and retention rules | Code exists; no state object in the last inventory |
 | `environments/dev/eks` | Cluster, node group, IAM, OIDC, and add-ons | Code exists; needs network output fixes before deployment |
 
-The bootstrap, networking, compute, and storage roots each had a zero-change plan during the foundation review. Compute and storage also showed drift notices. A zero-change plan at one point in time does not replace a new plan before the next apply. Networking comes before compute because compute reads networking outputs from remote state. The automatic GitHub plan and apply matrices currently include networking and compute only.
+The bootstrap, networking, compute, and storage roots each had a zero-change plan during the foundation review. Compute and storage also showed drift notices. With current Phase 2 values, networking still has a zero-change plan and compute proposes one bastion security-group update to limit SSH to the VPC public subnet. The running EC2 is not proposed for replacement. A plan at one point in time does not replace a new plan before the next apply. Networking comes before compute because compute reads networking outputs from remote state. The automatic GitHub plan and apply matrices currently include networking and compute only.
 
 ## Work locally
 
@@ -52,4 +52,4 @@ The state bucket manages its own imported state through a separate S3 key. Its b
 
 The caller workflows pin a commit of the shared `terraform-gha-workflows` repository. Pull requests start plan jobs; pushes to `main` or `master` can reach the apply path after its GitHub environment job. A separate manual workflow can destroy a selected component. GitHub environment rules and actual run results need to be checked in GitHub, and the pipeline still has ordering and artifact-handling gaps described in [pipeline.md](docs/pipeline.md).
 
-Current code is a base for the larger goal, not a claim that every planned AWS service is already integrated. EKS output references need correction, private network egress needs a design, and IAM Identity Center, RDS, Lambda, SNS, and other planned services need their own reviewed roots or modules. Make each change in a small step, compare its plan with live state, and keep the running bastion and current state addresses intact.
+Current code is a base for the larger goal, not a claim that every planned AWS service is already integrated. EKS output references need correction, and private network egress is still disabled by the current Phase 2 values. IAM Identity Center, RDS, Lambda, SNS, and other planned services need their own reviewed roots or modules. Make each change in a small step, compare its plan with live state, and keep the running bastion and current state addresses intact.

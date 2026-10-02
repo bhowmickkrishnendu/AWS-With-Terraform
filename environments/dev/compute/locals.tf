@@ -1,17 +1,17 @@
 locals {
-  # Per-instance EBS-mount script. Non-empty only when extra_ebs is a map whose
-  # entries declare both device_name and mount_point. (Mirrors the previous inline logic.)
+  # Per-instance EBS-mount script. Existing filesystems are never formatted again,
+  # and /etc/fstab receives each mount entry only once.
   ebs_mount_scripts = {
     for k, def in var.instance_definitions : k => (
-      can(keys(lookup(def, "extra_ebs", {}))) ? join("\n", [
-        for v in values(lookup(def, "extra_ebs", {})) :
-        format(
-          "if [ -b %s ]; then mkfs -t %s %s || true; mkdir -p %s; mount %s %s; echo '%s %s %s defaults,nofail 0 2' >> /etc/fstab; fi",
-          v.device_name, coalesce(v.filesystem, "ext4"), v.device_name, v.mount_point,
-          v.device_name, v.mount_point, v.device_name, v.mount_point, coalesce(v.filesystem, "ext4")
-        )
+      join("\n", [
+        for v in values(coalesce(def.extra_ebs, {})) :
+        templatefile("${path.module}/templates/mount-ebs.sh.tftpl", {
+          device_name = v.device_name
+          mount_point = v.mount_point
+          filesystem  = coalesce(v.filesystem, "ext4")
+        })
         if v.mount_point != null && v.mount_point != "" && v.device_name != null && v.device_name != ""
-      ]) : ""
+      ])
     )
   }
 

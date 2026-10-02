@@ -47,10 +47,10 @@ The roots pin their community module versions where modules are used. Provider v
 1. The state bucket must exist before a new component can use its S3 backend. It already exists and its bootstrap state has been adopted.
 2. Networking comes before compute because compute reads its VPC and subnet outputs.
 3. Storage is independent of compute. ECR can be planned separately once its configuration is reviewed.
-4. EKS depends on networking, but its current output references need correction before a deployment plan. Private subnets currently have no NAT gateway, so a future EKS design must also provide the network path its nodes and add-ons need.
+4. EKS depends on networking, but its current output references need correction before a deployment plan. Private subnets have no NAT gateway. Phase 2 code makes NAT, an S3 gateway endpoint, and interface endpoints optional, but the current values leave all disabled. A future EKS design must check its node and add-on network paths.
 
 The automatic plan and apply workflow matrices currently contain networking and compute only. Other roots being present in source code does not mean they are deployed. IAM Identity Center, RDS, Lambda, SNS, and the other services in the long-term goal do not yet have active roots here. See [pipeline.md](pipeline.md) for the actual triggers and release risks.
 
-The key design rule is to preserve existing state keys and deployed resource addresses while improving the code. The current networking, compute, storage, and bootstrap plans were checked with zero proposed resource changes during the foundation work. Compute and storage did report drift notices, which deserve review before a future change to those resources.
+The key design rule is to preserve existing state keys and deployed resource addresses while improving the code. The Phase 1 networking, compute, storage, and bootstrap plans were checked with zero proposed resource changes. With the current Phase 2 values, networking still proposes zero changes and compute proposes one bastion security-group update to limit SSH to the VPC public subnet. The running EC2 instance is not proposed for replacement. Compute and storage have reported drift notices, which deserve review before a future change to those resources.
 
 For details, read [backend.md](backend.md), [networking.md](networking.md), [compute.md](compute.md), and [storage.md](storage.md).
