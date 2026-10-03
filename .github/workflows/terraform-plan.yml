@@ -39,14 +39,15 @@ jobs:
           #   component: eks
           #   aws_region: ap-south-1
 
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@5c384e29866d4f2d647536b86e64ea2b17dfb018
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@da38804b4d72091543c26eb51fcda47c8d6e6f87
 
     with:
       environment: ${{ matrix.environment }}
       component: ${{ matrix.component }}
+      root_directory: stacks/${{ matrix.component }}
       aws_region: ${{ matrix.aws_region }}
       terraform_version: 1.14.2
-      tfvars_file: ${{ matrix.environment }}.tfvars
+      tfvars_file: terraform.tfvars
       role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
 
     secrets:

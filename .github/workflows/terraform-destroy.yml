@@ -33,13 +33,14 @@ permissions:
 
 jobs:
   terraform-destroy:
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-destroy.yml@5c384e29866d4f2d647536b86e64ea2b17dfb018
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-destroy.yml@da38804b4d72091543c26eb51fcda47c8d6e6f87
 
     with:
       environment: ${{ github.event.inputs.environment }}
       component: ${{ github.event.inputs.component }}
+      root_directory: stacks/${{ github.event.inputs.component }}
       aws_region: ap-south-1
-      tfvars_file: ${{ github.event.inputs.environment }}.tfvars
+      tfvars_file: terraform.tfvars
       confirm_destroy: ${{ github.event.inputs.confirm_destroy }}
       role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
     # secrets:
