@@ -1,44 +1,37 @@
 # GitHub Actions pipeline
 
-GitHub Actions calls reusable Terraform workflows in the separate `bhowmickkrishnendu/terraform-gha-workflows` repository. The callers here pin that repository to commit `da38804b4d72091543c26eb51fcda47c8d6e6f87`. This page describes the checked-in workflow code. GitHub repository settings, environment protection rules, secrets, and actual run results must be checked in GitHub before calling a release path fully tested.
+This project uses one AWS account and separate Terraform state files. The deployed stacks are networking, storage, and compute. The IAM root has no live inputs, and ECR and EKS have no deployed state in the last inventory, so automatic deployment does not include them. Bootstrap manages the state bucket and also stays outside automatic deployment.
 
-The caller passes `root_directory: stacks/<component>` to each reusable workflow. The `dev` environment value names plan artifacts. It does not select a folder or variable file. Each component offered by these callers has a `terraform.tfvars` file, which Terraform loads automatically. The callers also pass that filename to the shared workflows, whose pinned commit supports `root_directory`.
+## Pull requests
 
-## What starts each workflow
+Every pull request runs [PR checks](../.github/workflows/pr-validation.yml), with no path filter. The jobs check workflow syntax, Terraform format and validation for every root, IAM tests, a disposable local destroy test, TFLint, tfsec, Infracost, and required files. The final `PR checks` job fails when any job fails, is cancelled, or is skipped.
 
-| Caller | Trigger | Components in code | Result |
-| --- | --- | --- | --- |
-| `.github/workflows/terraform-plan.yml` | Any pull request to `main` or `master` | Networking and compute | Calls the shared plan workflow for each component |
-| `.github/workflows/terraform-apply.yml` | Any push to `main` or `master` | Networking and compute | Calls shared plan, passes an environment job, then calls shared apply |
-| `.github/workflows/terraform-destroy.yml` | Manual dispatch | Networking, compute, storage, ECR, or EKS | Calls shared destroy after a `DESTROY` text check |
-| `.github/workflows/pr-validation.yml` | Pull request that changes `bootstrap/**`, `stacks/**`, `modules/**`, or `.github/workflows/**` | `bootstrap/` and all `stacks/*/` roots in its validation loop | Runs local formatting, validation, lint, security, cost, and documentation jobs |
+PR code does not receive AWS credentials or a live Terraform state role. The compute state can contain an SSH private key, so live plans are made only after merge or by a maintainer using the manual plan workflow. This also means a PR check is a code and cost estimate, not a live AWS plan.
 
-The automatic matrices have storage, ECR, and EKS entries commented out. A Terraform root being present does not put it into automatic deployment. The manual destroy list is wider than the apply list, so a selected component needs careful review.
+TFLint and tfsec fail the PR when they find issues. tfsec gates HIGH and CRITICAL findings. The currently deployed state bucket uses AES256, so it has a narrow, dated exception for the customer-managed KMS rule. The undeployed EKS root has dated exceptions for cluster encryption, public API access, and broad egress. These exceptions expire and must be resolved during Phase 5 before EKS is enabled. New findings outside these exact locations fail the check.
 
-The plan and apply matrices run component jobs independently. There is no explicit `networking` then `compute` order in the workflow. Compute reads networking state, so a change that must land in networking first needs a deliberate release sequence. A push that changes only documentation still starts the plan and apply caller because that caller has no path filter.
+Infracost estimates the three deployed roots from Terraform source and `terraform.tfvars`. It reports their current estimated monthly costs, not a live bill or a PR cost difference. If the CLI fails or `INFRACOST_API_KEY` is unavailable, the cost job fails. Configure that repository secret before requiring the PR gate. Fork PRs cannot receive the secret from a normal `pull_request` workflow, so their cost job will fail until the change is brought through a trusted branch. No cost increase threshold is configured because this project has not set a budget policy.
 
-## Plan and apply path
+To enforce the PR result, protect `master` in GitHub Settings and require the status check named `PR checks`. Do not add a path filter to this workflow. Review the first completed PR run and select its final gate job as the required check. The repository currently has a protected `master` branch, but the exact required-check list must be verified in GitHub settings after this workflow is published.
 
-The shared plan job checks out the caller repository, installs the requested Terraform version, obtains AWS credentials through GitHub OIDC, and prints the AWS identity. It runs format, `terraform init`, validation, TFLint, and tfsec. It then writes a binary `tfplan` with `terraform.tfvars`, uploads it as an artifact named for the environment and component, and runs Infracost. The caller supplies Terraform `1.14.2`, `ap-south-1`, and the repository variable `AWS_TERRAFORM_ROLE_ARN`. Set that variable to the full ARN of the GitHub OIDC role in the intended AWS account before running plan, apply, or destroy.
+## After a merge
 
-The shared plan workflow declares `INFRACOST_API_KEY` as a required secret. Its TFLint command has `continue-on-error: true`, so lint findings do not stop that job. The tfsec step is configured with `soft_fail: false`. These are different behaviors, so do not read a green plan job as proof that every quality check was a gate.
+[Terraform Deploy](../.github/workflows/terraform-apply.yml) starts on a push to `master`. It plans networking, then waits for approval and applies its saved plan if there are changes. It repeats that sequence for storage and then compute. This order gives compute a fresh plan after networking has finished. A no-change plan skips its apply approval. A failed plan or apply stops the later stacks.
 
-After a push, the caller's `approval` job uses the GitHub environment named `production`. The shared apply job also names that environment. Whether a person must approve depends on the environment protection settings in GitHub, which are outside this repository. The shared apply job checks out the repository again, initializes Terraform, downloads the plan artifact from the same workflow run, and applies that saved plan. It does not create a fresh plan in the apply job.
+Each apply job uses a different GitHub environment: `apply-networking`, `apply-storage`, and `apply-compute`. Configure each environment with at least one required reviewer and allow deployment from `master` only. The reusable apply job reads the environment protection rules and fails before AWS access if required reviewers are absent. An environment name alone does not provide approval. Approval happens separately for each changed stack.
 
-A saved plan can contain sensitive values. In this repository, compute state includes a generated SSH private key. The plan artifact must be treated as sensitive too. The workflow currently uploads it without an explicit short `retention-days` setting. Review artifact access and retention before relying on this path for sensitive changes. The shared plan and apply jobs use `terraform init -input=false`; neither asks Terraform to keep the lock file read-only in CI.
+The caller uses the existing repository variable `AWS_TERRAFORM_ROLE_ARN`. The role and its OIDC trust are not created or changed by this phase. Set the variable to the intended role ARN and check that its trust allows runs on `master`. No account ID or access key belongs in this repository.
 
-## PR validation and destroy path
+The reusable plan workflow returns whether the plan has changes and a SHA256 digest. It uploads the binary plan only for changed stacks, with a one-day retention period. The approved apply job downloads the artifact from the same run, compares the digest, checks that `master` still points at this run's commit, and applies that saved plan. A binary Terraform plan can include secrets in cleartext. Restrict who can read Actions artifacts and do not copy them to PR comments. If the approval waits past the artifact lifetime, rerun a fresh deployment. The deploy and destroy callers use one concurrency group with cancellation disabled, so live runs queue instead of overlapping.
 
-The separate `pr-validation.yml` workflow installs Terraform `1.14.2`, checks formatting, and initializes each component with `-backend=false -lockfile=readonly` before `terraform validate`. Its format step has `continue-on-error: true`. TFLint, tfsec, and Infracost are also configured in ways that can let findings or failures remain advisory. The documentation job checks that standard files exist and looks for an empty description string, which is not a full documentation review. The summary comment can therefore sound more conclusive than the checks support. This workflow is not a verified release gate yet.
+The three reusable workflows in `terraform-gha-workflows` must be pinned to the reviewed Phase 6 commit SHA in every caller. Publish the shared workflow commit before publishing this repository branch so the SHA resolves. The plan and apply jobs use Terraform `1.14.2` and the committed provider lock files.
 
-The manual destroy caller accepts a component name and requires the text `DESTROY`. The shared destroy workflow checks that text, then runs `terraform destroy -auto-approve` with the selected `terraform.tfvars`. It also names the `production` GitHub environment, but any human approval depends on settings outside the code. Unlike plan and apply, the shared destroy job does not pass a Terraform version to `setup-terraform`, so its CLI version is not pinned by this caller. Review the component, account, state key, and proposed destruction before dispatching it.
+## Manual plan, destroy, and drift
 
-## A practical review before merging
+[Terraform Manual Plan](../.github/workflows/terraform-plan.yml) lets a maintainer plan one deployed stack from `master`. It does not upload its saved plan and cannot apply.
 
-1. Confirm the plan job used the intended AWS account and region `ap-south-1`.
-2. Read proposed creates, updates, deletes, and replacements for each affected root. Check networking before compute when both change.
-3. Check that the state key and `for_each` keys have not changed by accident.
-4. Treat the saved plan artifact and logs as sensitive, especially for compute.
-5. Verify the GitHub environment protection rules and required secret before treating the workflow as an approval process.
+[Terraform Manual Destroy](../.github/workflows/terraform-destroy.yml) accepts only networking, storage, or compute. It requires the exact text `DESTROY` and only runs from `master`. It creates a destroy plan in `ap-south-1`, then waits at `destroy-<component>` with required reviewers. The job verifies the saved plan digest and applies that plan. Configure these three destroy environments separately and restrict them to `master`. A local disposable Terraform stack test exercises saved-plan creation and destruction without touching AWS. The live destroy path still needs a separate test on disposable AWS resources before anyone uses it for a deployed stack.
 
-No workflow in this repository currently deploys the bootstrap root. The active root boundaries are shown in [architecture.md](architecture.md). The state bucket that the workflows use is described in [backend.md](backend.md).
+[Terraform Drift](../.github/workflows/terraform-drift.yml) runs weekly and can be started manually. It checks networking, storage, and compute with a read-only normal plan. It reports only event types, resource addresses, and actions, and fails on drift, proposed changes, or plan errors. It does not save a binary plan. Existing storage drift notices may make this job fail until their cause is resolved; do not suppress them without reviewing the live bucket and state.
+
+See [recovery.md](recovery.md) for state version checks, failed apply handling, and a safe recovery order.
