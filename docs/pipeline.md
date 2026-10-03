@@ -24,7 +24,7 @@ The caller uses the existing repository variable `AWS_TERRAFORM_ROLE_ARN`. The r
 
 The reusable plan workflow returns whether the plan has changes and a SHA256 digest. It uploads the binary plan only for changed stacks, with a one-day retention period. The approved apply job downloads the artifact from the same run, compares the digest, checks that `master` still points at this run's commit, and applies that saved plan. A binary Terraform plan can include secrets in cleartext. Restrict who can read Actions artifacts and do not copy them to PR comments. If the approval waits past the artifact lifetime, rerun a fresh deployment. The deploy and destroy callers use one concurrency group with cancellation disabled, so live runs queue instead of overlapping.
 
-The three reusable workflows in `terraform-gha-workflows` must be pinned to the reviewed Phase 6 commit SHA in every caller. Publish the shared workflow commit before publishing this repository branch so the SHA resolves. The plan and apply jobs use Terraform `1.14.2` and the committed provider lock files.
+The three reusable workflows in `terraform-gha-workflows` are pinned to commit `0b19a6abb5594ae95992338c26762742df6b96ff`, which is merged into its `main` branch. The plan and apply jobs use Terraform `1.14.2` and the committed provider lock files.
 
 ## Manual plan, destroy, and drift
 

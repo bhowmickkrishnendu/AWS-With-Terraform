@@ -17,7 +17,7 @@ concurrency:
 jobs:
   networking_plan:
     name: Plan networking
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@0b19a6abb5594ae95992338c26762742df6b96ff
     with:
       environment: dev
       component: networking
@@ -31,7 +31,7 @@ jobs:
     name: Apply networking
     needs: networking_plan
     if: needs.networking_plan.outputs.has_changes == 'true'
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@0b19a6abb5594ae95992338c26762742df6b96ff
     with:
       environment: dev
       component: networking
@@ -46,7 +46,7 @@ jobs:
     name: Plan storage
     needs: [networking_plan, networking_apply]
     if: ${{ always() && needs.networking_plan.result == 'success' && (needs.networking_apply.result == 'success' || needs.networking_apply.result == 'skipped') }}
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@0b19a6abb5594ae95992338c26762742df6b96ff
     with:
       environment: dev
       component: storage
@@ -60,7 +60,7 @@ jobs:
     name: Apply storage
     needs: storage_plan
     if: needs.storage_plan.outputs.has_changes == 'true'
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@0b19a6abb5594ae95992338c26762742df6b96ff
     with:
       environment: dev
       component: storage
@@ -75,7 +75,7 @@ jobs:
     name: Plan compute
     needs: [storage_plan, storage_apply]
     if: ${{ always() && needs.storage_plan.result == 'success' && (needs.storage_apply.result == 'success' || needs.storage_apply.result == 'skipped') }}
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@0b19a6abb5594ae95992338c26762742df6b96ff
     with:
       environment: dev
       component: compute
@@ -89,7 +89,7 @@ jobs:
     name: Apply compute
     needs: compute_plan
     if: needs.compute_plan.outputs.has_changes == 'true'
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@0b19a6abb5594ae95992338c26762742df6b96ff
     with:
       environment: dev
       component: compute

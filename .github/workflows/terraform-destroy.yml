@@ -29,7 +29,7 @@ jobs:
   destroy:
     name: Plan and approve destroy
     if: github.ref == 'refs/heads/master'
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-destroy.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-destroy.yml@0b19a6abb5594ae95992338c26762742df6b96ff
     with:
       environment: dev
       component: ${{ inputs.component }}
