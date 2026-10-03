@@ -4,7 +4,7 @@ Terraform state records which AWS object belongs to each resource address in cod
 
 ## What this root manages
 
-`infrastructure/00-backend` owns the bucket `krish-terraform-state-ap-south-1` and four separate settings:
+`bootstrap` owns the bucket `krish-terraform-state-ap-south-1` and four separate settings:
 
 | File | Resource | Purpose |
 | --- | --- | --- |
@@ -35,10 +35,10 @@ From the repository root in PowerShell, use the intended AWS CLI profile and con
 ```powershell
 $env:AWS_PROFILE = 'terraform-dev'
 aws sts get-caller-identity --query Account --output text
-terraform -chdir=infrastructure/00-backend init -lockfile=readonly -input=false
-terraform -chdir=infrastructure/00-backend validate
-terraform -chdir=infrastructure/00-backend state list
-terraform -chdir=infrastructure/00-backend plan -input=false
+terraform -chdir=bootstrap init -lockfile=readonly -input=false
+terraform -chdir=bootstrap validate
+terraform -chdir=bootstrap state list
+terraform -chdir=bootstrap plan -input=false
 ```
 
 The expected account is the one that owns the state bucket. The state list should have the five resources in the table above. If the plan proposes creating the bucket or changing its protection settings, stop and check the backend key, AWS identity, state version, and live settings before doing anything else. Do not run `init -migrate-state` again as a routine initialization step.

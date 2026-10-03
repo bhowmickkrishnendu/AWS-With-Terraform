@@ -1,6 +1,8 @@
 # Architecture overview
 
-This repository describes infrastructure in one AWS account and one primary region, `ap-south-1`. Terraform is split into small root configurations so a change to a bucket does not require the same state file as a change to an EC2 instance. The directory name `dev` is the existing state namespace and resource name prefix. It does not mean there is a second AWS account.
+This repository describes infrastructure in one AWS account and one primary region, `ap-south-1`. Terraform is split into small root configurations so a change to a bucket does not require the same state file as a change to an EC2 instance. The `dev` prefix remains in existing state keys and resource names. It does not mean there is a second AWS account.
+
+`bootstrap/` contains the state bucket root. `stacks/` contains independently runnable service roots. `modules/` contains reusable IAM building blocks called by a root. `docs/` explains how they fit together. The folder change did not change backend keys or Terraform resource addresses.
 
 The old backup folder contains earlier examples and is not part of the active deployment.
 
@@ -21,22 +23,23 @@ flowchart LR
     SS --> S3[Application S3 buckets]
 ```
 
-`infrastructure/00-backend` manages the state bucket itself. Its five existing S3 resources were imported into Terraform state. That state lives at `bootstrap/terraform.tfstate` in the same bucket. Each component under `environments/dev/` has a separate state key. The bucket is versioned, encrypted with SSE-S3, and blocks public access.
+`bootstrap` manages the state bucket itself. Its five existing S3 resources were imported into Terraform state. That state lives at `bootstrap/terraform.tfstate` in the same bucket. Each component under `stacks/` has a separate state key. The bucket is versioned, encrypted with SSE-S3, and blocks public access.
 
-| Root | Main responsibility | State key | Status on 2026-10-02 |
+| Root | Main responsibility | State key | Last verified deployment status |
 | --- | --- | --- | --- |
-| `infrastructure/00-backend` | State bucket and its protection settings | `bootstrap/terraform.tfstate` | Imported and zero-change plan |
-| `environments/dev/networking` | VPC and public and private subnets | `dev/networking/terraform.tfstate` | Deployed |
-| `environments/dev/compute` | EC2, security groups, IAM instance profile, SSH key secret | `dev/compute/terraform.tfstate` | Bastion deployed |
-| `environments/dev/storage` | Application S3 buckets | `dev/storage/terraform.tfstate` | Deployed |
-| `environments/dev/ecr` | Container image repositories | `dev/ecr/terraform.tfstate` | Code exists, no state object in the last inventory |
-| `environments/dev/eks` | Kubernetes cluster, node groups, add-ons | `dev/eks/terraform.tfstate` | Code exists, not ready to deploy |
+| `bootstrap` | State bucket and its protection settings | `bootstrap/terraform.tfstate` | Imported and zero-change plan |
+| `stacks/iam` | Optional IAM roles, policies, users, and attachments | Supplied at backend initialization | No resources configured by default |
+| `stacks/networking` | VPC and public and private subnets | `dev/networking/terraform.tfstate` | Deployed |
+| `stacks/compute` | EC2, security groups, IAM instance profile, SSH key secret | `dev/compute/terraform.tfstate` | Bastion deployed |
+| `stacks/storage` | Application S3 buckets | `dev/storage/terraform.tfstate` | Deployed |
+| `stacks/ecr` | Container image repositories | `dev/ecr/terraform.tfstate` | Code exists, no state object in the last inventory |
+| `stacks/eks` | Kubernetes cluster, node groups, add-ons | `dev/eks/terraform.tfstate` | Code exists, not ready to deploy |
 
 The five component roots share a backend bucket but have separate state objects. This keeps their changes and locks apart. Compute reads the networking root outputs through `terraform_remote_state`. EKS tries to do the same, but its output names do not yet match the networking outputs. Terraform can validate the EKS syntax without proving that a live EKS plan will work.
 
 ## How to read the Terraform code
 
-Each root has a `backend.tf` for state location, `versions.tf` for Terraform and provider constraints, and `provider.tf` for AWS region selection. A `.terraform.lock.hcl` fixes provider versions when it is included in Git. `main.tf` declares resources or calls a community module. `variables.tf` defines input types, `dev.tfvars` supplies values, and `outputs.tf` exposes results to people or another root. Compute also has `locals.tf` to build EC2 user data.
+Each root has a `backend.tf` for state location, `versions.tf` for Terraform and provider constraints, and `provider.tf` for AWS region selection. A `.terraform.lock.hcl` fixes provider versions when it is included in Git. `main.tf` declares resources or calls a community module. `variables.tf` defines input types, `terraform.tfvars` supplies values automatically, and `outputs.tf` exposes results to people or another root. Compute also has `locals.tf` to build EC2 user data.
 
 An input variable changes a root's behavior. A `local` names a calculated value within a root. `for_each` creates resources from a map, using each map key as part of the Terraform address. This repository uses it for EC2 instances, S3 buckets, ECR repositories, EKS node groups, and add-ons. Keep an existing key such as `bastion` stable unless you plan a state move. A `count` appears in the EKS OIDC resources to turn that optional feature on or off. Changing a `for_each` key or a count index can affect state addresses even if the AWS object name looks similar.
 
@@ -49,7 +52,7 @@ The roots pin their community module versions where modules are used. Provider v
 3. Storage is independent of compute. ECR can be planned separately once its configuration is reviewed.
 4. EKS depends on networking, but its current output references need correction before a deployment plan. Private subnets have no NAT gateway. Phase 2 code makes NAT, an S3 gateway endpoint, and interface endpoints optional, but the current values leave all disabled. A future EKS design must check its node and add-on network paths.
 
-The automatic plan and apply workflow matrices currently contain networking and compute only. Other roots being present in source code does not mean they are deployed. IAM Identity Center, RDS, Lambda, SNS, and the other services in the long-term goal do not yet have active roots here. See [pipeline.md](pipeline.md) for the actual triggers and release risks.
+The post-merge deployment handles deployed networking, storage, and compute in sequence, with a separate approval for each changed stack. Other roots being present in source code does not mean they are deployed. IAM Identity Center, RDS, Lambda, SNS, and the other services in the long-term goal do not yet have active roots here. See [pipeline.md](pipeline.md) for the triggers and [recovery.md](recovery.md) for failed-run recovery.
 
 The key design rule is to preserve existing state keys and deployed resources while improving the code. The Phase 1 networking, compute, storage, and bootstrap plans were checked with zero proposed resource changes. The Phase 2 compute code gives each VM its own security group and optional IAM role, with `moved` blocks for existing resources. Direct SSH to the public bastion is still configured. The module's extra security group is removed so the per-VM rules control traffic. Check a fresh plan before any apply. Compute and storage have reported drift notices, which deserve review before a future change to those resources.
 

@@ -1,0 +1,64 @@
+name: Terraform Drift
+
+on:
+  schedule:
+    - cron: "17 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: terraform-live-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: Drift ${{ matrix.component }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [networking, storage, compute]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.2
+          terraform_wrapper: false
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Initialize Terraform
+        working-directory: stacks/${{ matrix.component }}
+        run: terraform init -input=false -lockfile=readonly
+      - name: Check plan and live drift
+        working-directory: stacks/${{ matrix.component }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          terraform plan -json -input=false -lock=false -detailed-exitcode \
+            > "$RUNNER_TEMP/terraform-drift.jsonl"
+          plan_exit=$?
+          set -e
+          {
+            echo "### ${{ matrix.component }} drift"
+            echo "| Event | Address | Action |"
+            echo "| --- | --- | --- |"
+            jq -r 'select(.type == "resource_drift" or .type == "planned_change") | "| " + .type + " | " + .change.resource.addr + " | " + .change.action + " |"' \
+              "$RUNNER_TEMP/terraform-drift.jsonl"
+          } >> "$GITHUB_STEP_SUMMARY"
+          jq -r 'select(.type == "diagnostic" and .diagnostic.severity == "error") | .diagnostic.summary' \
+            "$RUNNER_TEMP/terraform-drift.jsonl" >&2
+          drift_count=$(jq -s '[.[] | select(.type == "resource_drift" or .type == "planned_change")] | length' \
+            "$RUNNER_TEMP/terraform-drift.jsonl")
+          if [ "$plan_exit" -ne 0 ] || [ "$drift_count" -gt 0 ]; then
+            echo "::error::Terraform found drift, proposed changes, or a plan error."
+            exit 1
+          fi

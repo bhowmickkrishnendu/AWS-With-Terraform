@@ -4,16 +4,16 @@ Networking is the foundation for the EC2 and future EKS roots. Its Terraform sta
 
 ## What the code builds
 
-`environments/dev/networking/main.tf` calls version `6.6.1` of the community VPC module. The current `dev.tfvars` sets `environment = "dev"`, `aws_region = "ap-south-1"`, and `vpc_cidr = "10.0.0.0/16"`. The module call describes this layout:
+`stacks/networking/main.tf` calls version `6.6.1` of the community VPC module. The current `terraform.tfvars` sets `environment = "dev"`, `aws_region = "ap-south-1"`, and `vpc_cidr = "10.0.0.0/16"`. The module call describes this layout:
 
 | Availability zone | Public subnet | Private subnet |
 | --- | --- | --- |
 | `ap-south-1a` | `10.0.1.0/24` | `10.0.11.0/24` |
 | `ap-south-1b` | `10.0.2.0/24` | `10.0.12.0/24` |
 
-The VPC is named `dev-vpc`. DNS support and DNS hostnames are enabled. The module manages the VPC, subnet resources, and routing. Phase 2 moved the zone and subnet lists into `dev.tfvars`. The list positions must stay aligned because each position describes one zone. Changing a deployed CIDR or list order can affect subnet IDs and the instances that use them, so review the plan before making such a change.
+The VPC is named `dev-vpc`. DNS support and DNS hostnames are enabled. The module manages the VPC, subnet resources, and routing. Phase 2 moved the zone and subnet lists into `terraform.tfvars`. The list positions must stay aligned because each position describes one zone. Changing a deployed CIDR or list order can affect subnet IDs and the instances that use them, so review the plan before making such a change.
 
-Private outbound access is set with `nat_gateway_mode`. `none` keeps the current deployed routing, `single` creates one NAT gateway, and `per_az` creates one NAT gateway in each zone. The current `dev.tfvars` uses `none`, so it creates no NAT gateway. An optional S3 gateway endpoint can add a route to the private route tables for in-region S3 traffic; it is disabled in `dev.tfvars`. These defaults preserve the current VPC. NAT gateways and their elastic IPs have ongoing AWS costs. A single gateway costs less but makes both zones depend on one zone for outbound traffic.
+Private outbound access is set with `nat_gateway_mode`. `none` keeps the current deployed routing, `single` creates one NAT gateway, and `per_az` creates one NAT gateway in each zone. The current `terraform.tfvars` uses `none`, so it creates no NAT gateway. An optional S3 gateway endpoint can add a route to the private route tables for in-region S3 traffic; it is disabled in `terraform.tfvars`. These defaults preserve the current VPC. NAT gateways and their elastic IPs have ongoing AWS costs. A single gateway costs less but makes both zones depend on one zone for outbound traffic.
 
 `interface_endpoint_services` is an optional set of AWS service suffixes. For each entry, Terraform creates an interface endpoint in both private subnets with private DNS. A separate security group allows HTTPS to those endpoints only from the private subnet CIDRs. The current set is empty. Interface endpoints have a charge for each service and zone, so enable only the services a workload needs. For a private instance managed with SSM and no NAT, AWS lists `ssm`, `ssmmessages`, and `ec2messages`, plus an S3 path for agent updates. ECR image pulls need `ecr.api`, `ecr.dkr`, and S3. See [AWS Systems Manager VPC endpoint guidance](https://docs.aws.amazon.com/systems-manager/latest/userguide/setup-create-vpc.html) and the [EKS private-cluster guide](https://docs.aws.amazon.com/eks/latest/userguide/private-clusters.html). Endpoints do not provide general access to package repositories.
 
@@ -32,16 +32,16 @@ The module tags resources with `Environment = dev` and `ManagedBy = terraform`. 
 - `backend.tf` selects the S3 state key and S3 lockfile.
 - `versions.tf` constrains Terraform and the AWS provider; `.terraform.lock.hcl` selects the provider build.
 - `provider.tf` uses `var.aws_region` and the standard AWS credential chain.
-- `variables.tf` defines the VPC, zone, subnet, NAT, and endpoint inputs; `dev.tfvars` leaves private egress disabled.
+- `variables.tf` defines the VPC, zone, subnet, NAT, and endpoint inputs; `terraform.tfvars` leaves private egress disabled.
 - `outputs.tf` publishes the VPC and subnet IDs used by compute.
 
 Run these checks from the repository root after confirming the AWS account:
 
 ```powershell
 $env:AWS_PROFILE = 'terraform-dev'
-terraform -chdir=environments/dev/networking init -lockfile=readonly -input=false
-terraform -chdir=environments/dev/networking validate
-terraform -chdir=environments/dev/networking plan -var-file=dev.tfvars -input=false
+terraform -chdir=stacks/networking init -lockfile=readonly -input=false
+terraform -chdir=stacks/networking validate
+terraform -chdir=stacks/networking plan -input=false
 ```
 
 The latest Phase 2 live plan with NAT, the S3 endpoint, and interface endpoints disabled proposes zero changes. An earlier trial plan with `per_az` and the S3 endpoint enabled showed seven creates and no replacements, but those settings were left disabled. Private subnets still have no general outbound internet access. If a later plan changes a subnet or VPC ID, inspect compute and EKS dependencies before applying. The state bucket and its protections are described in [backend.md](backend.md).
