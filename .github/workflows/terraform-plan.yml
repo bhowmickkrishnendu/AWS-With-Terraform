@@ -19,7 +19,7 @@ permissions:
 jobs:
   plan:
     name: Manual plan
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@0b19a6abb5594ae95992338c26762742df6b96ff
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@v2.0.1
     with:
       environment: dev
       component: ${{ inputs.component }}
