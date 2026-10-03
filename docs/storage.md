@@ -1,6 +1,6 @@
 # Application storage design
 
-The storage root manages application S3 buckets. It is separate from the S3 bucket that holds Terraform state. Its state key is `dev/storage/terraform.tfstate`, and its current `dev.tfvars` names two application buckets: `krish-dev-app-data` and `krish-dev-dev-assets`.
+The storage root manages application S3 buckets. It is separate from the S3 bucket that holds Terraform state. Its state key is `dev/storage/terraform.tfstate`, and its current `terraform.tfvars` names two application buckets: `krish-dev-app-data` and `krish-dev-dev-assets`.
 
 ## How buckets are described
 
@@ -26,9 +26,9 @@ The root takes `aws_region`, `environment`, and `buckets`. `provider.tf` uses th
 
 ```powershell
 $env:AWS_PROFILE = 'terraform-dev'
-terraform -chdir=environments/dev/storage init -lockfile=readonly -input=false
-terraform -chdir=environments/dev/storage validate
-terraform -chdir=environments/dev/storage plan -var-file=dev.tfvars -input=false
+terraform -chdir=stacks/storage init -lockfile=readonly -input=false
+terraform -chdir=stacks/storage validate
+terraform -chdir=stacks/storage plan -input=false
 ```
 
 The current code does not configure bucket lifecycle rules, replication, access logging, or object lock for application buckets. Those are design choices to make per data class, not properties to assume from versioning alone. For Terraform state storage, see [backend.md](backend.md).
