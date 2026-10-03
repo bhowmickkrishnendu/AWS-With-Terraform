@@ -17,17 +17,17 @@ git checkout -b feature/description
 ### Step 3: Local Validation
 ```bash
 # Format code
-terraform fmt -recursive
+terraform fmt -recursive bootstrap stacks modules
 
 # Validate syntax
-cd environments/dev/eks
+cd stacks/eks
 terraform init -backend=false
 terraform validate
 
 # Run TFLint
 cd ../..
 tflint --init
-tflint --recursive environments/dev/
+tflint --recursive stacks/
 
 # Fix any issues and commit
 git add .
