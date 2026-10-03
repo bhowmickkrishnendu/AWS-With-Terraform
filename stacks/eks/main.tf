@@ -65,7 +65,8 @@ resource "aws_security_group" "eks_cluster_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    # EKS is not deployed. Phase 5 must define node and control plane egress.
+    cidr_blocks = ["0.0.0.0/0"] #tfsec:ignore:aws-ec2-no-public-egress-sgr:exp:2026-12-31
   }
 
   tags = merge(
@@ -79,7 +80,8 @@ resource "aws_security_group" "eks_cluster_sg" {
   )
 }
 
-# EKS Cluster
+# EKS Cluster. Phase 5 must add a KMS key for secret encryption before deployment.
+#tfsec:ignore:aws-eks-encrypt-secrets:exp:2026-12-31
 resource "aws_eks_cluster" "main" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster_role.arn
@@ -89,8 +91,9 @@ resource "aws_eks_cluster" "main" {
     subnet_ids              = concat(data.terraform_remote_state.networking.outputs.private_subnet_ids, data.terraform_remote_state.networking.outputs.public_subnet_ids)
     security_group_ids      = [aws_security_group.eks_cluster_sg.id]
     endpoint_private_access = var.endpoint_private_access
-    endpoint_public_access  = var.endpoint_public_access
-    public_access_cidrs     = var.public_access_cidrs
+    # Phase 5 must review API reachability before this stack is deployed.
+    endpoint_public_access = var.endpoint_public_access #tfsec:ignore:aws-eks-no-public-cluster-access:exp:2026-12-31
+    public_access_cidrs    = var.public_access_cidrs    #tfsec:ignore:aws-eks-no-public-cluster-access-to-cidr:exp:2026-12-31
   }
 
   enabled_cluster_log_types = var.enabled_cluster_log_types
@@ -205,7 +208,8 @@ resource "aws_security_group" "eks_node_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    # EKS is not deployed. Phase 5 must define node egress with NAT or endpoints.
+    cidr_blocks = ["0.0.0.0/0"] #tfsec:ignore:aws-ec2-no-public-egress-sgr:exp:2026-12-31
   }
 
   tags = merge(

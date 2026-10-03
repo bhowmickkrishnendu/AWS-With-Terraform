@@ -1,278 +1,170 @@
-name: PR Validation - Terraform Code Quality
+name: PR checks
 
 on:
   pull_request:
-    branches:
-      - main
-      - master
-    paths:
-      - 'bootstrap/**'
-      - 'stacks/**'
-      - 'modules/**'
-      - '.github/workflows/**'
+  merge_group:
 
 permissions:
-  id-token: write
   contents: read
-  pull-requests: write
-  checks: write
-  statuses: write
 
 jobs:
-  terraform-validation:
-    name: Terraform Format & Validation
+  workflow-lint:
+    name: Actionlint
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Download and verify actionlint
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            -o "$RUNNER_TEMP/actionlint.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" \
+            | sha256sum -c
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint"
 
+  terraform:
+    name: Terraform format, validate, and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.14.2
-
-      - name: Terraform Format Check
-        id: fmt
+          terraform_wrapper: false
+      - name: Check format
+        run: terraform fmt -check -recursive bootstrap stacks modules examples
+      - name: Initialize and validate every root
+        shell: bash
         run: |
-          terraform fmt -recursive -check -diff bootstrap/ stacks/ modules/
-        continue-on-error: true
-
-      - name: Terraform Init (for validation)
-        id: init
-        run: |
-          for dir in bootstrap/ stacks/*/; do
-            echo "Initializing $dir..."
-            cd "$dir"
-            terraform init -backend=false -lockfile=readonly -input=false
-            cd - > /dev/null
+          set -euo pipefail
+          for root in bootstrap stacks/*; do
+            echo "::group::${root}"
+            terraform -chdir="$root" init -backend=false -lockfile=readonly -input=false
+            terraform -chdir="$root" validate -no-color
+            echo "::endgroup::"
           done
-
-      - name: Terraform Validate
-        id: validate
-        run: |
-          for dir in bootstrap/ stacks/*/; do
-            echo "Validating $dir..."
-            cd "$dir"
-            terraform validate
-            cd - > /dev/null
-          done
-
-      - name: Test IAM configuration
+      - name: Test IAM module wiring
         run: terraform -chdir=stacks/iam test -no-color
+      - name: Test saved destroy plan on a disposable local stack
+        run: python .github/tests/test_destroy_plan.py
 
-      - name: Terraform Format Report
-        if: failure() && steps.fmt.outcome == 'failure'
-        run: |
-          echo "❌ **Terraform Format Check Failed**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please run \`terraform fmt -recursive\` locally and commit the changes." >> $GITHUB_STEP_SUMMARY
-
-      - name: PR Comment - Format Check Failed
-        if: failure() && steps.fmt.outcome == 'failure'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '❌ **Terraform Format Check Failed**\n\nPlease run `terraform fmt -recursive` locally to fix formatting issues.'
-            })
-
-  tflint:
-    name: TFLint - Static Analysis
+  lint:
+    name: TFLint
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Cache Plugin Dir
-        uses: actions/cache@v3
-        with:
-          path: ~/.tflint.d/plugins
-          key: ubuntu-latest-tflint-${{ hashFiles('.tflint.hcl') }}
-
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.64.0
+      - name: Lint every root
+        shell: bash
+        run: |
+          set -euo pipefail
+          for root in bootstrap stacks/*; do
+            echo "::group::${root}"
+            (cd "$root" && tflint --init && tflint --format compact)
+            echo "::endgroup::"
+          done
 
-      - name: Initialize TFLint
-        run: tflint --init
-
-      - name: Run TFLint
-        run: tflint -f compact --recursive stacks/
-        continue-on-error: true
-
-  tfsec:
-    name: TFSec - Security Scanning
+  security:
+    name: tfsec
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Run TFSec
+      - name: Scan bootstrap
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
-          format: sarif
-          additional_args: --soft-fail stacks
-        continue-on-error: true
-
-      - name: Upload TFSec Results
-        uses: github/codeql-action/upload-sarif@v3
-        if: hashFiles('tfsec.sarif') != ''
+          working_directory: bootstrap
+          version: v1.28.14
+          additional_args: --minimum-severity HIGH
+          soft_fail: false
+      - name: Scan active stacks
+        uses: aquasecurity/tfsec-action@v1.0.3
         with:
-          sarif_file: tfsec.sarif
-          wait-for-processing: true
-        continue-on-error: true
+          working_directory: stacks
+          version: v1.28.14
+          additional_args: --minimum-severity HIGH
+          soft_fail: false
 
-      - name: TFSec PR Comment
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            
-            let comment = '✅ **Security Scan Completed**\n\n';
-            
-            // Check if SARIF file exists
-            const sarifPath = path.join(process.env.GITHUB_WORKSPACE, 'tfsec.sarif');
-            if (fs.existsSync(sarifPath)) {
-              try {
-                const results = JSON.parse(fs.readFileSync(sarifPath, 'utf8'));
-                const violations = results.runs[0]?.results || [];
-                
-                if (violations.length === 0) {
-                  comment = '✅ **Security Scan Passed** - No vulnerabilities detected';
-                } else {
-                  const severityCount = violations.reduce((acc, v) => {
-                    acc[v.level] = (acc[v.level] || 0) + 1;
-                    return acc;
-                  }, {});
-                  
-                  comment = '⚠️ **Security Issues Found**\n\n';
-                  comment += `- Error: ${severityCount.error || 0}\n`;
-                  comment += `- Warning: ${severityCount.warning || 0}\n`;
-                  comment += `- Note: ${severityCount.note || 0}\n\n`;
-                  comment += 'Please review the [Security Tab](https://github.com/${{ github.repository }}/security/code-scanning) for details.';
-                }
-              } catch (e) {
-                comment = '⚠️ **Security Scan Completed** - Review detailed results in logs';
-              }
-            } else {
-              comment = '✅ **Security Scan Completed** - No critical issues detected';
-            }
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            })
-
-  cost-estimation:
-    name: Infracost - Cost Estimation
+  cost:
+    name: Infracost
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.14.2
-
-      - name: Setup Infracost
-        uses: infracost/actions/setup@v3
-
-      - name: Run Infracost Breakdown
-        working-directory: stacks
-        run: |
-          infracost breakdown \
-            --path . \
-            --format table
+      - name: Require pricing API key
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-        continue-on-error: true
-
-  documentation-check:
-    name: Documentation & Variables Check
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Check for Required Files
         run: |
-          echo "Checking for required Terraform files..."
-          
-          for dir in stacks/*/; do
-            component=$(basename "$dir")
-            
-            if [ ! -f "$dir/main.tf" ]; then
-              echo "❌ Missing main.tf in $component"
-              exit 1
-            fi
-            
-            if [ ! -f "$dir/variables.tf" ]; then
-              echo "❌ Missing variables.tf in $component"
-              exit 1
-            fi
-            
-            if [ ! -f "$dir/outputs.tf" ]; then
-              echo "❌ Missing outputs.tf in $component"
-              exit 1
-            fi
-            
-            if [ ! -f "$dir/versions.tf" ]; then
-              echo "❌ Missing versions.tf in $component"
-              exit 1
-            fi
-            
-            echo "✅ $component has all required files"
-          done
-
-      - name: Verify Variables Documentation
-        run: |
-          echo "Checking variable documentation..."
-          
-          for vars_file in stacks/*/variables.tf; do
-            if grep -q "description = \"\"" "$vars_file"; then
-              echo "❌ Found undocumented variable in $vars_file"
-              exit 1
-            fi
-          done
-          
-          echo "✅ All variables are documented"
-
-  summary:
-    name: PR Validation Summary
-    needs: [terraform-validation, tflint, tfsec, cost-estimation, documentation-check]
-    runs-on: ubuntu-latest
-    if: always()
-
-    steps:
-      - name: Check Job Status
-        run: |
-          if [ "${{ needs.terraform-validation.result }}" = "failure" ] || \
-             [ "${{ needs.tflint.result }}" = "failure" ] || \
-             [ "${{ needs.documentation-check.result }}" = "failure" ]; then
-            echo "❌ PR validation failed. Please review the errors above."
+          if [ -z "$INFRACOST_API_KEY" ]; then
+            echo "::error::INFRACOST_API_KEY is required for the PR cost check."
             exit 1
           fi
-
-      - name: Success Comment
-        if: success()
-        uses: actions/github-script@v7
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
         with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '✅ **All Validation Checks Passed**\n\n- ✓ Terraform Format\n- ✓ Terraform Validation\n- ✓ TFLint\n- ✓ TFSec Security Scan\n- ✓ Cost Estimation\n- ✓ Documentation Check'
-            })
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+          version: 0.10.45
+      - name: Estimate deployed stacks
+        shell: bash
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+        run: |
+          set -euo pipefail
+          for root in stacks/networking stacks/storage stacks/compute; do
+            echo "::group::${root}"
+            echo "### Cost estimate: ${root}" >> "$GITHUB_STEP_SUMMARY"
+            infracost breakdown --path "$root" \
+              --terraform-var-file terraform.tfvars \
+              --format table | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "::endgroup::"
+          done
+
+  docs:
+    name: Root and variable docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Check root files and variable descriptions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for root in bootstrap stacks/*; do
+            for file in backend.tf provider.tf versions.tf .terraform.lock.hcl; do
+              test -f "$root/$file" || { echo "::error::Missing $root/$file"; exit 1; }
+            done
+          done
+          for root in stacks/*; do
+            for file in main.tf variables.tf outputs.tf; do
+              test -f "$root/$file" || { echo "::error::Missing $root/$file"; exit 1; }
+            done
+          done
+          if rg -n 'description[[:space:]]*=[[:space:]]*""' stacks modules; then
+            echo "::error::A variable or output has an empty description."
+            exit 1
+          fi
+          test -f docs/pipeline.md
+          test -f docs/recovery.md
+
+  gate:
+    name: PR checks
+    if: always()
+    needs: [workflow-lint, terraform, lint, security, cost, docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every check to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        shell: bash
+        run: |
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")'

@@ -1,102 +1,101 @@
-name: Terraform Apply
+name: Terraform Deploy
 
 on:
   push:
     branches:
-      - main
       - master
 
 permissions:
   id-token: write
   contents: read
-  pull-requests: write
+  actions: read
+
+concurrency:
+  group: terraform-live-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
-  terraform-plan:
-
-    strategy:
-      fail-fast: false
-
-      matrix:
-        include:
-          - environment: dev
-            component: networking
-            aws_region: ap-south-1
-
-          - environment: dev
-            component: compute
-            aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: storage
-          #   aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: ecr
-          #   aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: eks
-          #   aws_region: ap-south-1
-
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@da38804b4d72091543c26eb51fcda47c8d6e6f87
-
+  networking_plan:
+    name: Plan networking
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
     with:
-      environment: ${{ matrix.environment }}
-      component: ${{ matrix.component }}
-      root_directory: stacks/${{ matrix.component }}
-      aws_region: ${{ matrix.aws_region }}
+      environment: dev
+      component: networking
+      root_directory: stacks/networking
+      aws_region: ap-south-1
       terraform_version: 1.14.2
       tfvars_file: terraform.tfvars
       role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
 
-    secrets:
-      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-      # SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
-
-  approval:
-    needs: terraform-plan
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Approval gate
-        run: echo "Deployment approved and proceeding to apply"
-
-  terraform-apply:
-    needs: approval
-    strategy:
-      fail-fast: false
-
-      matrix:
-        include:
-          - environment: dev
-            component: networking
-            aws_region: ap-south-1
-
-          - environment: dev
-            component: compute
-            aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: storage
-          #   aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: ecr
-          #   aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: eks
-          #   aws_region: ap-south-1
-
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@da38804b4d72091543c26eb51fcda47c8d6e6f87
-
+  networking_apply:
+    name: Apply networking
+    needs: networking_plan
+    if: needs.networking_plan.outputs.has_changes == 'true'
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
     with:
-      environment: ${{ matrix.environment }}
-      component: ${{ matrix.component }}
-      root_directory: stacks/${{ matrix.component }}
-      aws_region: ${{ matrix.aws_region }}
+      environment: dev
+      component: networking
+      root_directory: stacks/networking
+      aws_region: ap-south-1
       terraform_version: 1.14.2
+      approval_environment: apply-networking
+      expected_plan_sha256: ${{ needs.networking_plan.outputs.plan_sha256 }}
       role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
-    # secrets:
-    #   SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
+
+  storage_plan:
+    name: Plan storage
+    needs: [networking_plan, networking_apply]
+    if: ${{ always() && needs.networking_plan.result == 'success' && (needs.networking_apply.result == 'success' || needs.networking_apply.result == 'skipped') }}
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    with:
+      environment: dev
+      component: storage
+      root_directory: stacks/storage
+      aws_region: ap-south-1
+      terraform_version: 1.14.2
+      tfvars_file: terraform.tfvars
+      role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+
+  storage_apply:
+    name: Apply storage
+    needs: storage_plan
+    if: needs.storage_plan.outputs.has_changes == 'true'
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    with:
+      environment: dev
+      component: storage
+      root_directory: stacks/storage
+      aws_region: ap-south-1
+      terraform_version: 1.14.2
+      approval_environment: apply-storage
+      expected_plan_sha256: ${{ needs.storage_plan.outputs.plan_sha256 }}
+      role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+
+  compute_plan:
+    name: Plan compute
+    needs: [storage_plan, storage_apply]
+    if: ${{ always() && needs.storage_plan.result == 'success' && (needs.storage_apply.result == 'success' || needs.storage_apply.result == 'skipped') }}
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    with:
+      environment: dev
+      component: compute
+      root_directory: stacks/compute
+      aws_region: ap-south-1
+      terraform_version: 1.14.2
+      tfvars_file: terraform.tfvars
+      role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+
+  compute_apply:
+    name: Apply compute
+    needs: compute_plan
+    if: needs.compute_plan.outputs.has_changes == 'true'
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
+    with:
+      environment: dev
+      component: compute
+      root_directory: stacks/compute
+      aws_region: ap-south-1
+      terraform_version: 1.14.2
+      approval_environment: apply-compute
+      expected_plan_sha256: ${{ needs.compute_plan.outputs.plan_sha256 }}
+      role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}

@@ -63,21 +63,6 @@ variable "node_groups" {
   description = "Map of node groups to create"
 }
 
-variable "vpc_id" {
-  type        = string
-  description = "VPC ID where EKS cluster will be deployed"
-}
-
-variable "private_subnets" {
-  type        = list(string)
-  description = "List of private subnet IDs for node groups"
-}
-
-variable "control_plane_subnet_ids" {
-  type        = list(string)
-  description = "List of subnet IDs for control plane endpoints"
-}
-
 variable "enable_oidc_provider" {
   type        = bool
   default     = true

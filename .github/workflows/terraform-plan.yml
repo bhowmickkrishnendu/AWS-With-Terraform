@@ -1,55 +1,31 @@
-name: Terraform Plan
+name: Terraform Manual Plan
 
 on:
-  pull_request:
-    branches:
-      - main
-      - master
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Deployed stack to plan
+        required: true
+        type: choice
+        options:
+          - networking
+          - storage
+          - compute
 
 permissions:
   id-token: write
   contents: read
-  pull-requests: write
 
 jobs:
-  terraform-plan:
-
-    strategy:
-      fail-fast: false
-
-      matrix:
-        include:
-          - environment: dev
-            component: networking
-            aws_region: ap-south-1
-
-          - environment: dev
-            component: compute
-            aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: storage
-          #   aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: ecr
-          #   aws_region: ap-south-1
-
-          # - environment: dev
-          #   component: eks
-          #   aws_region: ap-south-1
-
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@da38804b4d72091543c26eb51fcda47c8d6e6f87
-
+  plan:
+    name: Manual plan
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
     with:
-      environment: ${{ matrix.environment }}
-      component: ${{ matrix.component }}
-      root_directory: stacks/${{ matrix.component }}
-      aws_region: ${{ matrix.aws_region }}
+      environment: dev
+      component: ${{ inputs.component }}
+      root_directory: stacks/${{ inputs.component }}
+      aws_region: ap-south-1
       terraform_version: 1.14.2
       tfvars_file: terraform.tfvars
+      upload_plan: false
       role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
-
-    secrets:
-      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-      # SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}

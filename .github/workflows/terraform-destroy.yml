@@ -1,47 +1,42 @@
-name: Terraform Destroy
+name: Terraform Manual Destroy
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: "Environment"
-        required: true
-        type: choice
-        options:
-          - dev
-          # - uat
-          # - prod
-
       component:
-        description: "Component"
+        description: Deployed stack to destroy
         required: true
         type: choice
         options:
-          - networking
           - compute
           - storage
-          - ecr
-          - eks
-
+          - networking
       confirm_destroy:
-        description: "Type DESTROY to continue"
+        description: Type DESTROY to continue
         required: true
+        type: string
 
 permissions:
   id-token: write
   contents: read
+  actions: read
+
+concurrency:
+  group: terraform-live-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
-  terraform-destroy:
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-destroy.yml@da38804b4d72091543c26eb51fcda47c8d6e6f87
-
+  destroy:
+    name: Plan and approve destroy
+    if: github.ref == 'refs/heads/master'
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-destroy.yml@b88be7b7a9c3aac35e955838823bc3dd259e7032
     with:
-      environment: ${{ github.event.inputs.environment }}
-      component: ${{ github.event.inputs.component }}
-      root_directory: stacks/${{ github.event.inputs.component }}
+      environment: dev
+      component: ${{ inputs.component }}
+      root_directory: stacks/${{ inputs.component }}
       aws_region: ap-south-1
+      terraform_version: 1.14.2
       tfvars_file: terraform.tfvars
-      confirm_destroy: ${{ github.event.inputs.confirm_destroy }}
+      confirm_destroy: ${{ inputs.confirm_destroy }}
+      approval_environment: destroy-${{ inputs.component }}
       role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
-    # secrets:
-    #   SYS_PUBKEY: ${{ secrets.SYS_PUBKEY }}
