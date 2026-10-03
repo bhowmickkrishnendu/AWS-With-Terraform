@@ -168,7 +168,7 @@ module "instances" {
   associate_public_ip_address = each.value.associate_public_ip_address
   create_security_group       = false
   vpc_security_group_ids      = [local.vm_security_groups[each.key].id]
-  iam_instance_profile        = each.value.iam == null ? null : aws_iam_instance_profile.vm[each.key].name
+  iam_instance_profile        = each.value.iam != null ? aws_iam_instance_profile.vm[each.key].name : each.value.existing_instance_profile_name
 
   root_block_device = {
     size                  = coalesce(try(each.value.root_volume.size, null), var.root_volume_size)

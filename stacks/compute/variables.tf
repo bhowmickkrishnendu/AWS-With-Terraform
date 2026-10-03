@@ -22,7 +22,7 @@ variable "root_delete_on_termination" {
 }
 
 variable "instance_definitions" {
-  description = "VM settings keyed by a stable name. Disabled entries can retain shared network settings without creating a VM."
+  description = "VM settings keyed by a stable name. Disabled entries can retain network settings. An enabled VM can use a locally created IAM role or an existing instance profile."
   type = map(object({
     enabled                     = optional(bool, true)
     ami                         = optional(string)
@@ -54,6 +54,7 @@ variable "instance_definitions" {
       profile_name        = string
       managed_policy_arns = map(string)
     }))
+    existing_instance_profile_name = optional(string)
     root_volume = optional(object({
       size                  = optional(number)
       type                  = optional(string)
@@ -89,6 +90,8 @@ variable "instance_definitions" {
       contains(["public", "private"], vm.subnet_tier) &&
       (vm.subnet_tier == "public" || !vm.associate_public_ip_address) &&
       (!vm.enabled || (vm.ami != null && vm.instance_type != null)) &&
+      (vm.iam == null || vm.existing_instance_profile_name == null) &&
+      (vm.existing_instance_profile_name == null || trimspace(coalesce(vm.existing_instance_profile_name, " ")) != "") &&
       alltrue([for rule in values(vm.security_group.ingress) :
         (length(rule.cidr_blocks) > 0) != (rule.source_vm != null) &&
         (rule.source_vm == null || (contains(keys(var.instance_definitions), rule.source_vm) && !anytrue([for source_rule in values(try(var.instance_definitions[rule.source_vm].security_group.ingress, {})) : source_rule.source_vm != null]))) &&
@@ -98,6 +101,6 @@ variable "instance_definitions" {
         length(rule.cidr_blocks) > 0 && alltrue([for cidr in rule.cidr_blocks : can(cidrnetmask(cidr))])
       ])
     ])
-    error_message = "Use public/private subnet tiers, public IPs only in public subnets, AMI and type for enabled VMs, and valid CIDR or source_vm security rules."
+    error_message = "Use valid subnet, AMI, type, and security rules. A VM can use either its own iam block or an existing instance profile name, not both."
   }
 }

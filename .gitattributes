@@ -1,2 +1,2 @@
-environments/dev/compute/scripts/*.sh text eol=lf
-environments/dev/compute/templates/*.tftpl text eol=lf
+stacks/compute/scripts/*.sh text eol=lf
+stacks/compute/templates/*.tftpl text eol=lf
