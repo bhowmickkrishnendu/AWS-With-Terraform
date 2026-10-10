@@ -16,10 +16,15 @@ permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: terraform-live-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   plan:
     name: Manual plan
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@v2.0.1
+    if: github.ref == 'refs/heads/master'
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@46193a8e86a1cb015b8cd9576f12bedb222ce9bf # v3.0.0
     with:
       environment: dev
       component: ${{ inputs.component }}

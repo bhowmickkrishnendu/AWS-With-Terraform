@@ -17,7 +17,9 @@ concurrency:
 jobs:
   networking_plan:
     name: Plan networking
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@v2.0.1
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@46193a8e86a1cb015b8cd9576f12bedb222ce9bf # v3.0.0
+    secrets:
+      TF_PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
     with:
       environment: dev
       component: networking
@@ -30,8 +32,10 @@ jobs:
   networking_apply:
     name: Apply networking
     needs: networking_plan
-    if: needs.networking_plan.outputs.has_changes == 'true'
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@v2.0.1
+    if: ${{ !cancelled() && needs.networking_plan.result == 'success' && needs.networking_plan.outputs.has_changes == 'true' }}
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@46193a8e86a1cb015b8cd9576f12bedb222ce9bf # v3.0.0
+    secrets:
+      TF_PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
     with:
       environment: dev
       component: networking
@@ -45,8 +49,10 @@ jobs:
   storage_plan:
     name: Plan storage
     needs: [networking_plan, networking_apply]
-    if: ${{ always() && needs.networking_plan.result == 'success' && (needs.networking_apply.result == 'success' || needs.networking_apply.result == 'skipped') }}
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@v2.0.1
+    if: ${{ !cancelled() && needs.networking_plan.result == 'success' && (needs.networking_apply.result == 'success' || (needs.networking_apply.result == 'skipped' && needs.networking_plan.outputs.has_changes == 'false')) }}
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@46193a8e86a1cb015b8cd9576f12bedb222ce9bf # v3.0.0
+    secrets:
+      TF_PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
     with:
       environment: dev
       component: storage
@@ -59,8 +65,10 @@ jobs:
   storage_apply:
     name: Apply storage
     needs: storage_plan
-    if: needs.storage_plan.outputs.has_changes == 'true'
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@v2.0.1
+    if: ${{ !cancelled() && needs.storage_plan.result == 'success' && needs.storage_plan.outputs.has_changes == 'true' }}
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@46193a8e86a1cb015b8cd9576f12bedb222ce9bf # v3.0.0
+    secrets:
+      TF_PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
     with:
       environment: dev
       component: storage
@@ -74,8 +82,10 @@ jobs:
   compute_plan:
     name: Plan compute
     needs: [storage_plan, storage_apply]
-    if: ${{ always() && needs.storage_plan.result == 'success' && (needs.storage_apply.result == 'success' || needs.storage_apply.result == 'skipped') }}
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@v2.0.1
+    if: ${{ !cancelled() && needs.storage_plan.result == 'success' && (needs.storage_apply.result == 'success' || (needs.storage_apply.result == 'skipped' && needs.storage_plan.outputs.has_changes == 'false')) }}
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-plan.yml@46193a8e86a1cb015b8cd9576f12bedb222ce9bf # v3.0.0
+    secrets:
+      TF_PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
     with:
       environment: dev
       component: compute
@@ -88,8 +98,10 @@ jobs:
   compute_apply:
     name: Apply compute
     needs: compute_plan
-    if: needs.compute_plan.outputs.has_changes == 'true'
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@v2.0.1
+    if: ${{ !cancelled() && needs.compute_plan.result == 'success' && needs.compute_plan.outputs.has_changes == 'true' }}
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-apply.yml@46193a8e86a1cb015b8cd9576f12bedb222ce9bf # v3.0.0
+    secrets:
+      TF_PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
     with:
       environment: dev
       component: compute
@@ -99,3 +111,26 @@ jobs:
       approval_environment: apply-compute
       expected_plan_sha256: ${{ needs.compute_plan.outputs.plan_sha256 }}
       role_to_assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+
+  deploy-result:
+    name: Deployment result
+    if: always()
+    needs: [networking_plan, networking_apply, storage_plan, storage_apply, compute_plan, compute_apply]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Verify every changed stack was applied
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        shell: bash
+        run: |
+          echo "$RESULTS" | jq -e '
+            . as $jobs | ["networking", "storage", "compute"] | all(.[];
+              . as $stack |
+              $jobs[$stack + "_plan"].result == "success" and
+              (if $jobs[$stack + "_plan"].outputs.has_changes == "true"
+               then $jobs[$stack + "_apply"].result == "success"
+               elif $jobs[$stack + "_plan"].outputs.has_changes == "false"
+               then $jobs[$stack + "_apply"].result == "skipped"
+               else false end))'

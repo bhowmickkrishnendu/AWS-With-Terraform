@@ -24,7 +24,7 @@ The caller uses the existing repository variable `AWS_TERRAFORM_ROLE_ARN`. The r
 
 The reusable plan workflow returns whether the plan has changes and a SHA256 digest. It uploads the binary plan only for changed stacks, with a one-day retention period. The approved apply job downloads the artifact from the same run, compares the digest, checks that `master` still points at this run's commit, and applies that saved plan. A binary Terraform plan can include secrets in cleartext. Restrict who can read Actions artifacts and do not copy them to PR comments. If the approval waits past the artifact lifetime, rerun a fresh deployment. The deploy and destroy callers use one concurrency group with cancellation disabled, so live runs queue instead of overlapping.
 
-The three reusable workflows in `terraform-gha-workflows` use release tag `v2.0.1`, published from its `main` branch. Published version tags must not be moved. The plan logs show Terraform diagnostics, attribute changes, and proposed output changes. The run Summary renders the saved plan before approval. Current state outputs are shown after every successful plan, including no-change plans; applied state outputs are shown after successful apply. A no-change plan explicitly reports that apply will skip. Sensitive values marked in Terraform remain redacted in human-readable output. The plan and apply jobs use Terraform `1.14.2` and the committed provider lock files.
+The three reusable workflows in `terraform-gha-workflows` use the full commit SHA of release `v3.0.0`, published from its `main` branch. Published version tags must not be moved. The plan logs show Terraform diagnostics, attribute changes, and proposed output changes. The run Summary renders the saved plan before approval. Current state outputs are shown after every successful plan, including no-change plans; applied state outputs are shown after successful apply. A no-change plan explicitly reports that apply will skip. Sensitive values marked in Terraform remain redacted in human-readable output. The plan and apply jobs use Terraform `1.14.2` and the committed provider lock files.
 
 ## Manual plan, destroy, and drift
 
@@ -35,3 +35,15 @@ The three reusable workflows in `terraform-gha-workflows` use release tag `v2.0.
 [Terraform Drift](../.github/workflows/terraform-drift.yml) runs weekly and can be started manually. It checks networking, storage, and compute with a read-only normal plan. It reports only event types, resource addresses, and actions, and fails on drift, proposed changes, or plan errors. It does not save a binary plan. Existing storage drift notices may make this job fail until their cause is resolved; do not suppress them without reviewing the live bucket and state.
 
 See [recovery.md](recovery.md) for state version checks, failed apply handling, and a safe recovery order.
+
+## Audit hardening and v3 migration
+
+See [pipeline-audit.md](pipeline-audit.md) for findings, validation and settings that need administrator review. The v3 caller pins the shared release's full commit SHA. Third-party actions are also SHA-pinned and Dependabot checks them weekly. Checkout does not persist tokens, PR validation cancels superseded runs, and each running job has a timeout.
+
+Configure the caller repository Actions secret `TF_PLAN_PASSPHRASE` before merging these workflow changes. Generate at least 32 random characters (`openssl rand -hex 32`) and save the value in GitHub Settings, never in source. Uploaded plans are now encrypted before upload, decrypted only in approved apply/destroy jobs, and checked against the trusted original plan digest before Terraform reads them. Only that secret is explicitly forwarded to shared jobs. Manual plans with `upload_plan: false` require no encryption key. Missing keys fail without uploading plaintext; old v2 artifacts are not compatible.
+
+Artifact names include the run attempt. Use **Re-run all jobs** to regenerate plans and approval jobs together, including after expiry or secret rotation. The one-day retention period remains. Do not rerun apply alone with artifacts from an older attempt.
+
+Live workflows run only on the default branch (`master` here). Shared workflows reject PR/tag/feature-branch execution before AWS credentials. Manual plans now share concurrency with deployment, destroy and drift. Drift retains Terraform state locking with a five-minute wait, rather than disabling locks. Its operation changes no cloud resources.
+
+Apply conditions explicitly require a successful plan and changes, and do not inherit GitHub's implicit `success()` guard after legitimate upstream skips. A downstream plan allows a skipped upstream apply only when its plan explicitly reported no changes. The final `Deployment result` gate fails if any changed stack did not apply or if plan outputs are missing. Failure or cancellation stops later stacks; no-change applies require no approval.
