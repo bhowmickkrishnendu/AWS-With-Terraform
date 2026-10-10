@@ -29,7 +29,9 @@ jobs:
   destroy:
     name: Plan and approve destroy
     if: github.ref == 'refs/heads/master'
-    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-destroy.yml@v2.0.1
+    uses: bhowmickkrishnendu/terraform-gha-workflows/.github/workflows/terraform-destroy.yml@46193a8e86a1cb015b8cd9576f12bedb222ce9bf # v3.0.0
+    secrets:
+      TF_PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
     with:
       environment: dev
       component: ${{ inputs.component }}

@@ -50,3 +50,11 @@ After repair, run `terraform validate` and a fresh normal plan for the affected 
 PR checks run on every pull request and the single `PR checks` job should be required by the protected `master` branch. Post-merge deployment plans networking, storage, and compute in sequence. Each stack with changes waits at its own protected environment, `apply-networking`, `apply-storage`, or `apply-compute`. Manual destroy uses separate `destroy-<component>` environments and a typed confirmation. The reusable apply and destroy jobs stop if the selected environment has no required reviewers.
 
 See [pipeline.md](pipeline.md) for the exact workflow paths, inputs, and setup checks. The weekly drift workflow reports addresses and actions only. It does not save a plan or update state. Investigate any failed drift run before accepting a new deployment plan.
+
+## Encrypted plan recovery in v3
+
+The v3 shared workflows upload only encrypted plan artifacts. Configure `TF_PLAN_PASSPHRASE` in the caller repository before deployment. Apply decrypts and verifies the original digest before Terraform reads the plan. Never expose the secret, decrypted plan, or state in logs/tickets. Retained v2 plaintext artifacts need separate cleanup and key-exposure review; encryption does not retroactively protect them.
+
+Use **Re-run all jobs** after a failed/expired run, secret rotation, branch advancement or intervening state changes. Artifact names are scoped to the run attempt, so rerunning apply alone intentionally cannot consume an earlier attempt's plan. Review the fresh plan and approve each changed stack again. Do not bypass digest verification, latest-commit checks or the approval environment to recover a deployment.
+
+The final `Deployment result` job reports a failure if a changed stack did not apply, even when planning succeeded. Inspect the first failed/skipped stack and its prerequisites before retrying. A skipped apply is expected only when its successful plan reported `has_changes=false`.
