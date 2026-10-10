@@ -26,6 +26,7 @@ variable "instance_definitions" {
   type = map(object({
     enabled                     = optional(bool, true)
     ami                         = optional(string)
+    ami_ssm_parameter           = optional(string)
     instance_type               = optional(string)
     subnet_tier                 = string
     availability_zone           = optional(string)
@@ -89,7 +90,7 @@ variable "instance_definitions" {
       for name, vm in var.instance_definitions :
       contains(["public", "private"], vm.subnet_tier) &&
       (vm.subnet_tier == "public" || !vm.associate_public_ip_address) &&
-      (!vm.enabled || (vm.ami != null && vm.instance_type != null)) &&
+      (!vm.enabled || (((vm.ami != null) != (vm.ami_ssm_parameter != null)) && vm.instance_type != null)) &&
       (vm.iam == null || vm.existing_instance_profile_name == null) &&
       (vm.existing_instance_profile_name == null || trimspace(coalesce(vm.existing_instance_profile_name, " ")) != "") &&
       alltrue([for rule in values(vm.security_group.ingress) :
@@ -101,6 +102,6 @@ variable "instance_definitions" {
         length(rule.cidr_blocks) > 0 && alltrue([for cidr in rule.cidr_blocks : can(cidrnetmask(cidr))])
       ])
     ])
-    error_message = "Use valid subnet, AMI, type, and security rules. A VM can use either its own iam block or an existing instance profile name, not both."
+    error_message = "Use valid subnet, type, and security rules. Enabled VMs need exactly one of ami or ami_ssm_parameter. A VM can use either its own iam block or an existing instance profile name, not both."
   }
 }

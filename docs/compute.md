@@ -4,6 +4,12 @@ The compute root manages the running bastion in `dev/compute/terraform.tfstate`.
 
 ## VM definitions
 
+`latest_dev_system` adds a second public bastion in `ap-south-1a` with instance type `t4g.small`, EC2 Name tag and Linux hostname `latest-dev-system`, a separate SSH key/Secrets Manager secret, and its own SSM role/profile. It uses Amazon Linux 2023 ARM64 through the public SSM parameter `/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64`. An enabled definition must specify exactly one of `ami` or `ami_ssm_parameter`. The parameter resolves the latest regional AMI on each plan; a newer AMI can propose replacing this new instance on a later apply. To keep a deployed AMI fixed, replace `ami_ssm_parameter` with its resolved `ami` ID. The existing `bastion` definition retains its pinned AMI and settings.
+
+The new bastion matches the existing bastion's SSH ingress (`0.0.0.0/0`) and SSH/HTTPS egress. Set its SSH CIDR to your trusted public `/32` to restrict access. The disabled private VM's SSH group still allows only the original bastion; add a separate `source_vm = "latest_dev_system"` ingress rule if a future private VM should accept SSH from both bastions.
+
+After applying, `terraform -chdir=stacks/compute output instance_connection_details` lists each VM's ID, public/private IPs, and key pair name. Use `ec2-user` for SSH to the new Amazon Linux instance and retrieve its key from the `dev-latest_dev_system-private-key` Secrets Manager secret.
+
 `terraform.tfvars` holds a map called `instance_definitions`. Each VM has its own AMI, instance type, subnet tier, optional availability zone, public IP setting, security group rules, and optional IAM role. The map key is part of its Terraform address. Keep `bastion` stable because the running instance is tracked as `module.instances["bastion"]`. A disabled definition keeps its security group but creates no instance. The disabled `private_ec2` definition retains a security group already in state until that VM is needed.
 
 The bastion has `availability_zone = "ap-south-1a"` to keep its current subnet. For a new enabled VM with no AZ, `random_integer.subnet_choice` picks one subnet from the selected tier. Terraform saves that number in state, so the next plan uses the same subnet. This is a random choice once, not a fresh choice on every plan. Changing a deployed VM's AZ or subnet normally requires replacing that EC2 instance. Set the AZ before the first apply when you need a specific zone.
