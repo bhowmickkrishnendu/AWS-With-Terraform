@@ -1,3 +1,15 @@
+output "instance_connection_details" {
+  description = "Instance IDs, addresses, and SSH key names keyed by VM definition."
+  value = {
+    for name, instance in module.instances : name => {
+      instance_id   = instance.id
+      public_ip     = instance.public_ip
+      private_ip    = instance.private_ip
+      key_pair_name = aws_key_pair.ec2[name].key_name
+    }
+  }
+}
+
 output "bastion_public_ip" {
   value = module.instances["bastion"].public_ip
 }

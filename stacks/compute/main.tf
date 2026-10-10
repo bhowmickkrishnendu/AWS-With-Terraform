@@ -17,6 +17,11 @@ data "aws_subnet" "private" {
   id       = each.key
 }
 
+data "aws_ssm_parameter" "instance_ami" {
+  for_each = { for name, vm in var.instance_definitions : name => vm if vm.enabled && vm.ami_ssm_parameter != null }
+  name     = each.value.ami_ssm_parameter
+}
+
 locals {
   active_instances = { for name, vm in var.instance_definitions : name => vm if vm.enabled }
   iam_instances    = { for name, vm in local.active_instances : name => vm if vm.iam != null }
@@ -158,7 +163,7 @@ module "instances" {
   version  = "6.4.0"
   for_each = local.active_instances
 
-  ami           = each.value.ami
+  ami           = each.value.ami_ssm_parameter != null ? nonsensitive(data.aws_ssm_parameter.instance_ami[each.key].value) : each.value.ami
   instance_type = each.value.instance_type
   subnet_id = each.value.availability_zone == null ? (
     each.value.subnet_tier == "public" ? local.public_subnet_ids[random_integer.subnet_choice[each.key].result] : local.private_subnet_ids[random_integer.subnet_choice[each.key].result]

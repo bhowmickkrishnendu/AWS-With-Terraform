@@ -39,6 +39,38 @@ instance_definitions = {
     }
   }
 
+  latest_dev_system = {
+    # Amazon Linux 2023 ARM64 is required for the Graviton-based t4g.small.
+    ami_ssm_parameter           = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
+    instance_type               = "t4g.small"
+    subnet_tier                 = "public"
+    availability_zone           = "ap-south-1a"
+    associate_public_ip_address = true
+    extra_tags                  = { Name = "latest-dev-system", Role = "bastion" }
+    user_data_file              = "scripts/latest-dev-system.sh"
+    user_data_vars              = { hostname = "latest-dev-system" }
+
+    # Matches the existing bastion's direct SSH access; narrow to your /32 if needed.
+    security_group = {
+      description = "Security group for latest-dev-system bastion host"
+      ingress = {
+        ssh = { description = "SSH Access", from_port = 22, to_port = 22, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
+      }
+      egress = {
+        ssh   = { description = "SSH to private EC2 within the VPC", from_port = 22, to_port = 22, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
+        https = { description = "HTTPS access for package updates and SSM", from_port = 443, to_port = 443, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
+      }
+    }
+
+    iam = {
+      role_name    = "dev-latest-dev-system-ssm-role"
+      profile_name = "dev-latest-dev-system-profile"
+      managed_policy_arns = {
+        ssm_core = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      }
+    }
+  }
+
   # This group exists in state, but no private VM is deployed. Keep it until
   # the private VM is needed so the SG is not destroyed by this refactor.
   private_ec2 = {
