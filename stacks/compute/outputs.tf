@@ -11,11 +11,11 @@ output "instance_connection_details" {
 }
 
 output "bastion_public_ip" {
-  value = module.instances["bastion"].public_ip
+  value = try(module.instances["bastion"].public_ip, null)
 }
 
 output "bastion_instance_id" {
-  value = module.instances["bastion"].id
+  value = try(module.instances["bastion"].id, null)
 }
 
 output "private_ec2_instance_id" {

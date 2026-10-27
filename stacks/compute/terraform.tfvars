@@ -6,18 +6,13 @@ root_volume_type           = "gp3"
 root_delete_on_termination = true
 
 instance_definitions = {
+  # dev-bastion was decommissioned. Its services moved to infra-services-nano.
+  # The entry stays disabled so its security group remains as the SSH source
+  # for private_ec2. The instance, key pair, secret, and IAM role are removed.
   bastion = {
-    ami                         = "ami-0ac7b260cf76d8865"
-    instance_type               = "t3.small"
+    enabled                     = false
     subnet_tier                 = "public"
-    availability_zone           = "ap-south-1a"
     associate_public_ip_address = true
-    extra_tags                  = { Role = "bastion" }
-    user_data_file              = "scripts/bastion.sh"
-    user_data_vars              = { hostname = "dev-bastion" }
-
-    # The internet gateway makes the public IP reachable. This rule opens SSH
-    # from any IPv4 address. Replace with your trusted public /32 when possible.
     security_group = {
       description = "Security group for bastion host"
       ingress = {
@@ -26,47 +21,6 @@ instance_definitions = {
       egress = {
         ssh   = { description = "SSH to private EC2 within the VPC", from_port = 22, to_port = 22, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
         https = { description = "HTTPS access for package updates and SSM", from_port = 443, to_port = 443, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
-      }
-    }
-
-    # Kept with its deployed names to avoid replacing the role or profile.
-    iam = {
-      role_name    = "dev-ec2-ssm-role"
-      profile_name = "dev-ec2-profile"
-      managed_policy_arns = {
-        ssm_core = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-      }
-    }
-  }
-
-  latest_dev_system = {
-    # Amazon Linux 2023 ARM64 is required for the Graviton-based t4g.small.
-    ami_ssm_parameter           = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
-    instance_type               = "t4g.small"
-    subnet_tier                 = "public"
-    availability_zone           = "ap-south-1a"
-    associate_public_ip_address = true
-    extra_tags                  = { Name = "latest-dev-system", Role = "bastion" }
-    user_data_file              = "scripts/latest-dev-system.sh"
-    user_data_vars              = { hostname = "latest-dev-system" }
-
-    # Matches the existing bastion's direct SSH access; narrow to your /32 if needed.
-    security_group = {
-      description = "Security group for latest-dev-system bastion host"
-      ingress = {
-        ssh = { description = "SSH Access", from_port = 22, to_port = 22, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
-      }
-      egress = {
-        ssh   = { description = "SSH to private EC2 within the VPC", from_port = 22, to_port = 22, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
-        https = { description = "HTTPS access for package updates and SSM", from_port = 443, to_port = 443, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
-      }
-    }
-
-    iam = {
-      role_name    = "dev-latest-dev-system-ssm-role"
-      profile_name = "dev-latest-dev-system-profile"
-      managed_policy_arns = {
-        ssm_core = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
       }
     }
   }
